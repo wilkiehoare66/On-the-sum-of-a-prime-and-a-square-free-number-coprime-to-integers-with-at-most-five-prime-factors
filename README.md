@@ -4,12 +4,6 @@ Code for the verifications required in the paper *"On the sum of a prime and a
 square-free number coprime to integers with at most five prime factors"* by
 W. Hoare, E. S. Lee and A. Pearce-Crump.
 
-**This repository is not a new version of the three-prime one.** The analytic
-scripts implement a sharpened Proposition 4.1/4.3, the coverage argument is
-different in kind, and the C++ verifiers collect six witnesses rather than
-four. Results and certificates from the three-prime repository do not carry
-over and must not be copied across.
-
 ## What has to be true for the theorem to hold
 
 The proof has two computational halves, and both are here.
@@ -78,9 +72,15 @@ method at six prime factors.
 
 ### The toggles
 
+Proposition 4.1 is sharpened in two independent ways: the Brun-Titchmarsh loss
+factor is weighted pointwise across the sieve range rather than replaced by its
+endpoint value, and the coprimality condition is retained inside that range
+rather than discarded. Proposition 4.3 carries the first of these. Neither
+touches the main term, the short-range error, or any imported estimate.
+
 `ComputeRkBound.py` and `ComputeBqBound.py` each carry a flag (`SHARPEN`,
-`SHARPEN_B`) restoring the unsharpened form of its proposition. With both set
-to `False` the scripts reproduce the published three-prime constants exactly:
+`SHARPEN_B`) restoring the unsharpened form of its proposition, so that a
+reader can switch the sharpenings off and see exactly what they are worth:
 
 | quantity | unsharpened | sharpened |
 |---|---|---|
@@ -89,8 +89,8 @@ to `False` the scripts reproduce the published three-prime constants exactly:
 | `R_51(n)/n`  | 0.05555 | 0.16205 |
 | `E_B(13)`    | 0.02036 | 0.01566 |
 
-This is deliberate: it isolates the effect of the two sharpenings, and lets a
-reader switch them off.
+With the flags off, `k = 105` has no positive direct bound below
+`n ~ 1.77e11`; with them on it is positive at `8e9` with margin `+0.111`.
 
 ### Directed rounding
 
