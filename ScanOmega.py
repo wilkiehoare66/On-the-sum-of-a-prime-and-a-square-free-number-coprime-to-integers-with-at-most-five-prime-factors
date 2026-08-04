@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""
+ScanOmega.py
+============
+Evaluates the base-plus-peel criterion for an arbitrary odd square-free modulus
+k = q_1 ... q_r (q_1 < ... < q_r), at a given n, using the sharpened
+Propositions 4.1 and 4.3 (ComputeRkBound.py / ComputeBqBound.py with
+SHARPEN / SHARPEN_B on).
+
+THE CRITERION.  Choose a base m = q_1...q_s (an initial segment) and peel the
+remaining primes.  Both main terms are proportional to the same Euler product
+W_n = prod_{p nmid n}(1 - 1/(p(p-1))):
+
+    R_m(n)/n   >=  beta(m) W_n - E_R(m,n),        beta(m) = prod_{q|m} lambda_q,
+    B_q(n)/n   <=  (1 - lambda_q) W_n + E_B(q,n).
+
+Peeled primes may be costed in either of two currencies:
+
+  (W-currency)  via Proposition 4.3, cost  (1 - lambda_q) C_Artin + E_B(q,n).
+                Requires the bracket  beta(m) - sum_{q in W} (1 - lambda_q) >= 0,
+                since only then does W_n >= C_Artin apply in the right direction.
+  (crude)       via the elementary bound (5) / Lemma 5.2, cost
+                    1/q + (q-1)/(840 log n)                for q <= 100,
+                    1/(q-1) + 1/(160 log n)                for 100 < q <= 1e5,
+                    0.00026                                for q > 1e5.
+                Absolute, so it carries no bracket constraint.
+
+Both costs are absolute (in units of n), so each peeled prime independently takes
+the cheaper of the two, and
+
+    margin = beta(m) C_Artin - E_R(m,n) - sum_q cost(q) - log2/n.
+
+s = r is the direct bound (no peel); s = 0 is the Theorem 2.4 comparison, with
+E_R(1,n) the genuine explicit error at k = 1 rather than a flat lower bound.
+
+Usage:
+    python3 ScanOmega.py --k 15015                 # one modulus
+    python3 ScanOmega.py --omega 5 --qmax 101      # exhaustive scan
+    python3 ScanOmega.py --omega 5 --worst         # worst-case search (see below)
+"""
+import argparse
+import math
+from math import gcd, floor, sqrt
+from itertools import combinations
+
+import ComputeBqBound as BQ
+import ComputeRkBound as RK
+
+C_ARTIN = RK.C_ARTIN
+LOG2 = math.log(2.0)
+MAXMOD = RK.MAX_TABLE_MOD          # 1e5: the Bennett modulus cap
+BASE_CAP = MAXMOD // 4             # largest base admitting c >= 2
+
+_ctx = None
+_cacheB, _cacheR = {}, {}
+
+
+def ctx():
+    global _ctx
+    if _ctx is None:
+        _ctx = BQ.build_context()
+    return _ctx
+
+
+def lam(q):
+    return q * (q - 2) / (q * q - q - 1.0)
+
+
+def beta(primes):
+    b = 1.0
+    for q in primes:
+        b *= lam(q)
+    return b
+
+
+def E_B(q, n):
+    """Proposition 4.3 error for B_q, or None if the modulus cap forbids it."""
+    if q > MAXMOD:
+        return None
+    key = (q, n)
+    if key not in _cacheB:
+        try:
+            _cacheB[key] = BQ.Bq_error(q, n, ctx())["err"]
+        except Exception:
+            _cacheB[key] = None
+    return _cacheB[key]
+
+
+def E_R(m, n):
+    """Proposition 4.1 error for R_m, or None if the modulus cap forbids it.
+
+    Proposition 4.1 needs an admissible c_theta(e d^2) for every e | m and
+    d <= c, so c = floor(sqrt(MAXMOD/m)); c >= 1 requires m <= MAXMOD, and the
+    tail term decreases like 1/c, so in practice m <= MAXMOD/4 (c >= 2) is the
+    working range.
+    """
+    if m > MAXMOD:
+        return None
+    key = (m, n)
+    if key not in _cacheR:
+        try:
+            _, bound = BQ.R_lower(m, n, ctx())
+            _cacheR[key] = beta(BQ.factor_squarefree(m) if m > 1 else []) * C_ARTIN - bound
+        except Exception:
+            _cacheR[key] = None
+    return _cacheR[key]
+
+
+def crude_cost(q, n):
+    """The elementary upper bound for B_q(n)/n: eq (5) and Lemma 5.2."""
+    logn = math.log(n)
+    if q <= 100:
+        return 1.0 / q + (q - 1.0) / (840.0 * logn)
+    if q <= MAXMOD:
+        return 1.0 / (q - 1.0) + 1.0 / (160.0 * logn)
+    return 0.00026
+
+
+def margin(primes, n, s):
+    """Margin for base = primes[:s], peeling primes[s:].  None if inadmissible."""
+    base, peeled = list(primes[:s]), list(primes[s:])
+    m = 1
+    for q in base:
+        m *= q
+    er = E_R(m, n)
+    if er is None:
+        return None
+    total, bracket = 0.0, beta(base)
+    for q in peeled:
+        cw = E_B(q, n)
+        cost_w = (1.0 - lam(q)) * C_ARTIN + cw if cw is not None else None
+        cost_c = crude_cost(q, n)
+        if cost_w is not None and cost_w <= cost_c:
+            bracket -= (1.0 - lam(q))
+            total += cost_w
+        else:
+            total += cost_c
+    if bracket < 0.0:
+        return None
+    return beta(base) * C_ARTIN - er - total - LOG2 / n
+
+
+def best_device(primes, n):
+    """Best (device-name, margin) over all initial-segment bases."""
+    r = len(primes)
+    out = []
+    for s in range(r, -1, -1):
+        v = margin(primes, n, s)
+        if v is not None:
+            out.append(("direct" if s == r else ("cmp" if s == 0 else f"peel{r - s}"), v))
+    return max(out, key=lambda t: t[1]) if out else ("none", float("-inf"))
+
+
+def main():
+    ap = argparse.ArgumentParser(description="Base-plus-peel coverage scan")
+    ap.add_argument("--k", type=int)
+    ap.add_argument("--omega", type=int)
+    ap.add_argument("--qmax", type=int, default=101)
+    ap.add_argument("--n", type=float, default=8e9)
+    ap.add_argument("--show", type=int, default=8, help="how many worst cases to print")
+    args = ap.parse_args()
+
+    if args.k:
+        ps = BQ.factor_squarefree(args.k)
+        dev, s = best_device(ps, args.n)
+        print(f"k={args.k} {ps}  device={dev}  margin={s:+.6f}  {'CLEARS' if s > 0 else 'FAILS'}")
+        for j in range(len(ps), -1, -1):
+            v = margin(ps, args.n, j)
+            tag = "direct" if j == len(ps) else ("cmp" if j == 0 else f"peel{len(ps)-j}")
+            print(f"    {tag:8s} base={ps[:j]!s:24s} " +
+                  ("inadmissible" if v is None else f"margin={v:+.6f}"))
+        return
+
+    if args.omega:
+        pool = [p for p in range(3, args.qmax + 1) if all(p % d for d in range(2, int(sqrt(p)) + 1))]
+        fails, tested, results = [], 0, []
+        for combo in combinations(pool, args.omega):
+            tested += 1
+            dev, s = best_device(list(combo), args.n)
+            results.append((s, combo, dev))
+            if s <= 0:
+                fails.append((s, combo, dev))
+        results.sort()
+        print(f"omega={args.omega}, primes<={args.qmax}: tested {tested}, "
+              f"FAILURES {len(fails)}")
+        for s, combo, dev in results[:args.show]:
+            k = 1
+            for q in combo:
+                k *= q
+            print(f"   {'FAIL' if s <= 0 else 'ok  '} k={k:<12d} {combo}  {dev:8s} {s:+.6f}")
+
+
+if __name__ == "__main__":
+    main()
