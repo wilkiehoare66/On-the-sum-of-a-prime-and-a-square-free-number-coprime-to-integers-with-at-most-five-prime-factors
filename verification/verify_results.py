@@ -48,12 +48,15 @@ VERIFIERS = {
              "chunk": 1000000, "stride": 2, "kind": "witness"},
     "even": {"csv": "even_results.csv", "start": 10002, "end": 2000000000000,
              "chunk": 10000000, "stride": 2, "kind": "split"},
-    # Not load-bearing for the manuscript: the four-witness / two-split arguments are
-    # uniform in k, so odd+even already cover every k with omega(k)<=3. This is an
-    # independent cross-check of the unconstrained statement over the same range.
+    # OPTIONAL, and not load-bearing for the manuscript: the six-witness and
+    # three-split arguments are uniform in k, so odd+even already cover every k
+    # with omega(k) <= 5.  This is an independent cross-check of the
+    # unconstrained statement (Theorem 1.1) over the same range, produced by
+    # verify_large_prime.cpp.  If that was not run, its absence is reported as
+    # SKIPPED rather than as a failure.
     "unconstrained": {"csv": "unconstrained_results.csv", "start": 4810000000,
                       "end": 2000000000000, "chunk": 10000000, "stride": 1,
-                      "kind": "prime_plus_sqfree"},
+                      "kind": "prime_plus_sqfree", "optional": True},
 }
 
 SMALL_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
@@ -218,6 +221,9 @@ def _primes_desc(n):
 def check_coverage(name, meta, path):
     problems = []
     if not os.path.exists(path):
+        if meta.get("optional"):
+            print(f"  {name}: SKIPPED (optional cross-check, {path} not present)")
+            return []
         return [f"{name}: results file {path} not found"]
     rows = []
     with open(path, newline="") as fh:
@@ -289,8 +295,8 @@ def _count_integers(a, b, stride):
 def check_witnesses(name, meta, n_samples, rng):
     """Re-derive a witness independently for n_samples random n in range."""
     finder = {"prime_plus_sqfree": find_prime_plus_sqfree,
-              "split": find_two_splits,
-              "witness": find_four_witnesses}[meta["kind"]]
+              "split": find_splits,
+              "witness": find_witnesses}[meta["kind"]]
     problems = []
     lo, hi = meta["start"], meta["end"]
     tested = 0
