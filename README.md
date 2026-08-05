@@ -1,5 +1,7 @@
 # On the sum of a prime and a square-free number coprime to integers with at most five prime factors
 
+[![DOI](https://zenodo.org/badge/1322756247.svg)](https://doi.org/10.5281/zenodo.21813035)
+
 Code for the verifications required in the paper *"On the sum of a prime and a
 square-free number coprime to integers with at most five prime factors"* by
 W. Hoare, E. S. Lee and A. Pearce-Crump.
@@ -155,6 +157,27 @@ The witness and split counts appear in exactly one place each —
 
 `verify_large_prime.cpp` is an independent cross-check inherited from the
 first author's thesis. It is not cited by the paper and running it is optional.
+
+## Citing this repository
+
+Archived on Zenodo. The DOI below is the *concept* DOI: it always resolves to
+the latest release, so it stays correct as the repository is updated.
+
+> Hoare, W. *Reproducibility code and data for "On the sum of a prime and a
+> square-free number coprime to integers with at most five prime factors"*.
+> Zenodo. https://doi.org/10.5281/zenodo.21813035
+
+```bibtex
+@misc{hoare2026code,
+  author       = {Hoare, Wilkie},
+  title        = {Reproducibility code and data for {On the sum of a prime and
+                  a square-free number coprime to integers with at most five
+                  prime factors}},
+  year         = {2026},
+  howpublished = {Zenodo archived release},
+  doi          = {10.5281/zenodo.21813035}
+}
+```
 
 ## Authorship and results of record
 
