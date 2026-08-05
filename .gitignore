@@ -1,0 +1,5 @@
+verification/verify_odd
+verification/verify_even
+verification/verify_large_prime
+verification/results/*_checkpoint.csv
+__pycache__/
