@@ -34,7 +34,8 @@
 //
 //   default          -- inline deterministic Miller-Rabin with the twelve
 //                        Sorenson-Webster bases, valid unconditionally for
-//                        every n < 3.317 * 10^24.
+//                        every n < 318665857834031151167461 (~3.19e23),
+//                        eleven orders of magnitude beyond this range.
 //     g++ -O2 -std=c++17 -fopenmp verify_even.cpp -o verify_even
 //
 //   -DUSE_BPSW       -- Baillie-PSW with Montgomery multiplication from
