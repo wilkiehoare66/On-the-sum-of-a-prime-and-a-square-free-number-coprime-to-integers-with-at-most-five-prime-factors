@@ -32,7 +32,8 @@
 //
 //   default          -- inline deterministic Miller-Rabin with the twelve
 //                        Sorenson-Webster bases, valid unconditionally for
-//                        every n < 3.317 * 10^24.
+//                        every n < 318665857834031151167461 (~3.19e23),
+//                        eleven orders of magnitude beyond this range.
 //     g++ -O2 -std=c++17 -fopenmp verify_odd.cpp -o verify_odd
 //
 //   -DUSE_BPSW       -- Baillie-PSW with Montgomery multiplication from
@@ -105,7 +106,8 @@ constexpr i64 POOL_PMAX = 2'000'000;
 //
 //   default          -- inline deterministic Miller-Rabin with the twelve
 //                        Sorenson-Webster bases, valid unconditionally for
-//                        every n < 3.317 * 10^24, comfortably beyond NMAX.
+//                        every n < 318665857834031151167461 (~3.19e23),
+//                        comfortably beyond NMAX.
 //                        This is the backend of record for the paper's
 //                        reported constants.
 //
