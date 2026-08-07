@@ -23,7 +23,8 @@ of their code:
      square-freeness and support-disjointness on real data, independently.
 
 Primality here is deterministic Miller-Rabin with the twelve Sorenson-Webster
-bases (unconditional below 3.317e24), matching the verifiers' backend of record
+bases (unconditional below 318665857834031151167461 ~ 3.19e23), matching the
+verifiers' backend of record
 -- but implemented separately, so agreement is a genuine cross-check.
 
 Usage:
