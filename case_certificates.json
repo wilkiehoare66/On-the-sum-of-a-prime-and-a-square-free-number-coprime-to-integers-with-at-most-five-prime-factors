@@ -8,7 +8,7 @@
  "n_intervals": {
   "(1e10, inf)": {
    "q_1 = 3, q_2 = 5, q_3 = 7, q_4 >= 11": {
-    "E_R": 0.03928259110243433,
+    "E_R": 0.04147497208979675,
     "base_m": 105,
     "base_primes": [
      3,
@@ -17,21 +17,22 @@
     ],
     "beta_exact": "315/779",
     "bracket": 0.23520209585672436,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.1512144762516046,
-    "margin": 0.01630033134632279,
+    "margin": 0.01343574308445572,
     "n": 10000100000.0,
-    "peel_total": 0.09563155273353346,
+    "peel_total": 0.09630376000803811,
     "peels": [
      {
-      "cost": 0.051146176960654766,
+      "cost": 0.0515015451033916,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04448537577287869,
+      "cost": 0.044802214904646524,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 15015,
@@ -44,7 +45,7 @@
     ]
    },
    "q_1 = 3, q_2 = 5, q_3 >= 11": {
-    "E_R": 0.025593081473187927,
+    "E_R": 0.026866156358656912,
     "base_m": 15,
     "base_primes": [
      3,
@@ -52,26 +53,27 @@
     ],
     "beta_exact": "9/19",
     "bracket": 0.245481146015647,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.17713695789473685,
-    "margin": 0.020786053576735686,
+    "margin": 0.018576011330187797,
     "n": 10000100000.0,
-    "peel_total": 0.13075782177549922,
+    "peel_total": 0.13169478913657812,
     "peels": [
      {
-      "cost": 0.051146176960654766,
+      "cost": 0.0515015451033916,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04448537577287869,
+      "cost": 0.044802214904646524,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03512626904196575,
+      "cost": 0.035391029128539996,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 36465,
@@ -84,7 +86,7 @@
     ]
    },
    "q_1 = 3, q_2 = 7, q_3 >= 11": {
-    "E_R": 0.031078975748033557,
+    "E_R": 0.03260962472940815,
     "base_m": 21,
     "base_primes": [
      3,
@@ -92,26 +94,27 @@
     ],
     "beta_exact": "21/41",
     "bracket": 0.2839920574405507,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.19153833658536584,
-    "margin": 0.02970153799251904,
+    "margin": 0.02723392165006555,
     "n": 10000100000.0,
-    "peel_total": 0.13075782177549922,
+    "peel_total": 0.13169478913657812,
     "peels": [
      {
-      "cost": 0.051146176960654766,
+      "cost": 0.0515015451033916,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04448537577287869,
+      "cost": 0.044802214904646524,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03512626904196575,
+      "cost": 0.035391029128539996,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 51051,
@@ -124,38 +127,39 @@
     ]
    },
    "q_1 = 3, q_2 >= 11": {
-    "E_R": 0.029581221928928977,
+    "E_R": 0.030518214254894305,
     "base_m": 3,
     "base_primes": [
      3
     ],
     "beta_exact": "3/5",
     "bracket": 0.31901101173566554,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.22437348,
-    "margin": 0.03180541636947937,
+    "margin": 0.029685353302064427,
     "n": 10000100000.0,
-    "peel_total": 0.1629868406322776,
+    "peel_total": 0.16416991137372722,
     "peels": [
      {
-      "cost": 0.051146176960654766,
+      "cost": 0.0515015451033916,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04448537577287869,
+      "cost": 0.044802214904646524,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03512626904196575,
+      "cost": 0.035391029128539996,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.032229018856778396,
+      "cost": 0.032475122237149094,
       "q": 19,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 138567,
@@ -168,41 +172,42 @@
     ]
    },
    "q_1 >= 5": {
-    "E_R": 0.04562925802252646,
+    "E_R": 0.046818068905440435,
     "base_m": 1,
     "base_primes": [],
     "beta_exact": "1",
     "bracket": 0.41492915628522337,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 5,
     "main_term": 0.3739558,
-    "margin": 0.015875085708931647,
+    "margin": 0.012611488173324858,
     "n": 10000100000.0,
-    "peel_total": 0.3124514551992279,
+    "peel_total": 0.3145262418519207,
     "peels": [
      {
-      "cost": 0.10506878235331084,
+      "cost": 0.10571355688604994,
       "q": 5,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.07662485107041783,
+      "cost": 0.07711789582929264,
       "q": 7,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.051146176960654766,
+      "cost": 0.0515015451033916,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04448537577287869,
+      "cost": 0.044802214904646524,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03512626904196575,
+      "cost": 0.035391029128539996,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 85085,
@@ -217,7 +222,7 @@
   },
   "[8e9, 1e10]": {
    "q_1 = 3, q_2 = 5, q_3 = 7, q_4 >= 11": {
-    "E_R": 0.03978009418123644,
+    "E_R": 0.04214196647066125,
     "base_m": 105,
     "base_primes": [
      3,
@@ -226,21 +231,22 @@
     ],
     "beta_exact": "315/779",
     "bracket": 0.23520209585672436,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.1512144762516046,
-    "margin": 0.015510749742473406,
+    "margin": 0.012421815851307957,
     "n": 8000000000.0,
-    "peel_total": 0.09592363124125138,
+    "peel_total": 0.096650692842992,
     "peels": [
      {
-      "cost": 0.05130891304565559,
+      "cost": 0.05169299019623676,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04461471819559579,
+      "cost": 0.04495770264675525,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 15015,
@@ -253,7 +259,7 @@
     ]
    },
    "q_1 = 3, q_2 = 5, q_3 >= 11": {
-    "E_R": 0.025897187588845325,
+    "E_R": 0.027249920685074338,
     "base_m": 15,
     "base_primes": [
      3,
@@ -261,26 +267,27 @@
     ],
     "beta_exact": "9/19",
     "bracket": 0.245481146015647,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.17713695789473685,
-    "margin": 0.02003013903663038,
+    "margin": 0.017663143618975405,
     "n": 8000000000.0,
-    "peel_total": 0.13120963018261775,
+    "peel_total": 0.1322238925040437,
     "peels": [
      {
-      "cost": 0.05130891304565559,
+      "cost": 0.05169299019623676,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04461471819559579,
+      "cost": 0.04495770264675525,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03528599894136638,
+      "cost": 0.035573199661051706,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 36465,
@@ -293,7 +300,7 @@
     ]
    },
    "q_1 = 3, q_2 = 7, q_3 >= 11": {
-    "E_R": 0.03144072010491721,
+    "E_R": 0.03307443898250583,
     "base_m": 21,
     "base_primes": [
      3,
@@ -301,26 +308,27 @@
     ],
     "beta_exact": "21/41",
     "bracket": 0.2839920574405507,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.19153833658536584,
-    "margin": 0.028887985211187475,
+    "margin": 0.0262400040121729,
     "n": 8000000000.0,
-    "peel_total": 0.13120963018261775,
+    "peel_total": 0.1322238925040437,
     "peels": [
      {
-      "cost": 0.05130891304565559,
+      "cost": 0.05169299019623676,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04461471819559579,
+      "cost": 0.04495770264675525,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03528599894136638,
+      "cost": 0.035573199661051706,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 51051,
@@ -333,38 +341,39 @@
     ]
    },
    "q_1 = 3, q_2 >= 11": {
-    "E_R": 0.02985197901613006,
+    "E_R": 0.03083784051292607,
     "base_m": 3,
     "base_primes": [
      3
     ],
     "beta_exact": "3/5",
     "bracket": 0.31901101173566554,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 11,
     "main_term": 0.22437348,
-    "margin": 0.030930832590744042,
+    "margin": 0.028663462678594362,
     "n": 8000000000.0,
-    "peel_total": 0.16359066730648247,
+    "peel_total": 0.16487217572183616,
     "peels": [
      {
-      "cost": 0.05130891304565559,
+      "cost": 0.05169299019623676,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04461471819559579,
+      "cost": 0.04495770264675525,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03528599894136638,
+      "cost": 0.035573199661051706,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.032381037123864725,
+      "cost": 0.032648283217792444,
       "q": 19,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 138567,
@@ -377,41 +386,42 @@
     ]
    },
    "q_1 >= 5": {
-    "E_R": 0.046046268868434444,
+    "E_R": 0.04730309110286739,
     "base_m": 1,
     "base_primes": [],
     "beta_exact": "1",
     "bracket": 0.41492915628522337,
+    "envelope_non_increasing": true,
     "first_peel_threshold": 5,
     "main_term": 0.3739558,
-    "margin": 0.014508085331321016,
+    "margin": 0.011015680452477902,
     "n": 8000000000.0,
-    "peel_total": 0.31340144471360115,
+    "peel_total": 0.3156370273580113,
     "peels": [
      {
-      "cost": 0.10532119876979931,
+      "cost": 0.10601178777267041,
       "q": 5,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.07687061576118412,
+      "cost": 0.07740134708129719,
       "q": 7,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.05130891304565559,
+      "cost": 0.05169299019623676,
       "q": 11,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.04461471819559579,
+      "cost": 0.04495770264675525,
       "q": 13,
-      "source": "Prop 4.3"
+      "source": "envelope"
      },
      {
-      "cost": 0.03528599894136638,
+      "cost": 0.035573199661051706,
       "q": 17,
-      "source": "Prop 4.3"
+      "source": "envelope"
      }
     ],
     "worst_k": 85085,
