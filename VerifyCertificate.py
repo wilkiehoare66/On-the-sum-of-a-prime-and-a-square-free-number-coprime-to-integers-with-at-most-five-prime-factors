@@ -96,13 +96,19 @@ def check_case(desc, rec, cart, log2u, eps, fails):
     peeled = combo[len(base):]
     if [p["q"] for p in rec["peels"]] != peeled:
         fails.append(f"{desc}: peel list {[p['q'] for p in rec['peels']]} != {peeled}")
+    prev = None
     for p in rec["peels"]:
         q, cost = p["q"], p["cost"]
-        if p["source"] == "Prop 4.3":
-            floor = float((1 - lam(q)) * cart)
-            if cost < floor - TOL:
-                fails.append(f"{desc}: peel q={q} cost {cost} below main part {floor}")
-            bracket -= (1 - lam(q))
+        floor = float((1 - lam(q)) * cart)
+        if cost < floor - TOL:
+            fails.append(f"{desc}: peel q={q} cost {cost} below its main part {floor}")
+        # the envelope must be non-increasing along the (increasing) peel list,
+        # which is the property Lemma 5.2 supplies and cost(q) itself lacks
+        if prev is not None and cost > prev + TOL:
+            fails.append(f"{desc}: peel costs not non-increasing at q={q} "
+                         f"({prev} -> {cost}); the envelope is not an envelope")
+        prev = cost
+        bracket -= (1 - lam(q))
         total += cost
     if abs(float(bracket) - rec["bracket"]) > TOL:
         fails.append(f"{desc}: bracket {rec['bracket']} vs recomputed {float(bracket)}")
