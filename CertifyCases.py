@@ -76,18 +76,16 @@ def certify(desc, base, combo, n):
         return None
     beta_b = beta_exact(base)
     main = float(beta_b * C_ARTIN_LOWER)         # rounded down by construction
+    # Each peel is charged the certified non-increasing envelope cost_bar, not
+    # cost(q) itself: cost is not monotone in q (it rises from q = 97 to
+    # q = 101), so a worst-case evaluation cannot appeal to monotonicity.  The
+    # bracket debits (1 - lambda_q) for every peeled prime, its strictest form.
     total, bracket, ledger = 0.0, beta_b, []
     for q in peeled:
-        eb = S.E_B(q, n)
-        cost_w = float((1 - lam_exact(q)) * C_ARTIN_LOWER) + up(eb) if eb is not None else None
-        cost_c = up(S.crude_cost(q, n))
-        if cost_w is not None and cost_w <= cost_c:
-            bracket -= (1 - lam_exact(q))
-            total += cost_w
-            ledger.append((q, "Prop 4.3", cost_w))
-        else:
-            total += cost_c
-            ledger.append((q, "elementary", cost_c))
+        cb = up(S.cost_bar(q, n))
+        total += cb
+        bracket -= (1 - lam_exact(q))
+        ledger.append((q, "envelope", cb))
     if bracket < 0:
         return None
     margin = main - up(er) - total - float(LOG2_UPPER) / n - EPS
@@ -132,7 +130,8 @@ def main():
                 "peel_total": r["peel_total"], "bracket": r["bracket"],
                 "margin": r["margin"], "n": n,
                 "peels": [{"q": q, "source": src, "cost": cst}
-                          for q, src, cst in r["ledger"]]}
+                          for q, src, cst in r["ledger"]],
+                "envelope_non_increasing": True}
     archive["verdict"] = "certified" if ok else "failed"
     with open("case_certificates.json", "w") as f:
         json.dump(archive, f, indent=1, sort_keys=True)
