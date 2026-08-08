@@ -2,7 +2,7 @@
 """
 CertifyCases.py
 ===============
-Directed-rounding certificate for the five cases of Lemma 5.4 (the case tree
+Directed-rounding certificate for the five cases of Lemma 5.6 (the case tree
 covering every odd square-free k with omega(k) <= 5).
 
 CONVENTION, as elsewhere in this repository: main terms are rounded DOWN, error
@@ -35,7 +35,7 @@ EPS = 1e-9
 C_ARTIN_LOWER = Fraction(3739558, 10000000)     # < Artin's constant
 LOG2_UPPER = Fraction(6931472, 10000000)        # > log 2
 
-# The case tree of Lemma 5.4, as (description, base primes, threshold T, worst
+# The case tree of Lemma 5.6, as (description, base primes, threshold T, worst
 # completion).  T is the least value the first peeled prime may take in that
 # case; by Lemma 5.3 the worst k of the case is the base followed by T and its
 # successors, which is what makes one evaluation certify the whole branch.
