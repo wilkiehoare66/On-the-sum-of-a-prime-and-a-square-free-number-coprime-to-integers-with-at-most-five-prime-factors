@@ -20,7 +20,7 @@ worst completion certifies EVERY k sharing the prefix q_1...q_s.
 
 THE CASE TREE
 -------------
-Starting from the empty prefix (base = 1, the Theorem 2.4 comparison), at each
+Starting from the empty prefix (base = 1, the comparison of Section 3), at each
 node with prefix P = (q_1,...,q_s):
 
   * evaluate the worst completion of P; if the margin is positive, the whole
@@ -32,12 +32,30 @@ node with prefix P = (q_1,...,q_s):
     primes q_s < q < T.
 
 The tree is finite exactly when every branch terminates, i.e. when no prefix
-survives to length r with product exceeding the modulus cap of Theorem 2.2.
+survives to length r with product exceeding the modulus cap M of Theorem 2.1.
 A branch that reaches length r with product > 1e5 has no admissible device and
 is reported as UNCOVERED.
 
 Usage:
     python3 CoverageTree.py --omega 5
+
+WHICH VALUES OF r MATTER.  Only --omega 5 (Table 2, Lemma 5.6) and --omega 6
+(Table 3, the obstruction) correspond to anything in the paper.  The tree runs
+for any r, but the paper does NOT compute omega(k) <= 4: those cases follow
+from omega(k) = 5 by Lemma 5.5 (monotonicity in the modulus), since k | K
+implies R_K(n) <= R_k(n), so adjoining primes to k until it has five gives
+R_k(n) >= R_K(n).  The smaller trees are kept only as a check on the machinery.
+
+Their minima are not monotone in r, which is why the paper takes that route:
+
+    r=0: +0.326653   r=1: +0.140583   r=2: +0.034571
+    r=3: +0.010123   r=4: +0.019484   r=5: +0.011016
+
+The r = 3 tree bottoms out BELOW the r = 5 tree, at the family (3, >=5) with
+worst completion k = 105, because that family must be bounded with base 3 and
+two peels.  Embedding k = 105 into K = 15015 instead earns it case 5's base-105
+evaluation and the constant +0.011016.  The uniform constant quoted in
+Lemma 5.6 is 0.011, the least of the five r = 5 margins, valid for every r <= 5.
     python3 CoverageTree.py --omega 6 --n 1e10
 """
 import argparse
@@ -106,7 +124,7 @@ def settle(prefix, r, n, out, qcap=2000):
     """Settle the branch whose first len(prefix) primes are exactly `prefix`.
 
     At a leaf (len(prefix) == r) the base is all of k and the device is the
-    direct bound of Proposition 4.1.  Otherwise we find the least prime T such
+    direct bound of Theorem 4.1.  Otherwise we find the least prime T such
     that base = prefix clears every k with q_{s+1} >= T, and recurse on the
     finitely many primes strictly between max(prefix) and T.
     """
