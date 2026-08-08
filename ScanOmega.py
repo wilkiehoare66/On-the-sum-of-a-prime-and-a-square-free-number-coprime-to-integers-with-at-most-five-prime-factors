@@ -116,6 +116,59 @@ def crude_cost(q, n):
     return 0.00026
 
 
+Q_ENV = 1000          # cost(q) is computed exactly for every prime q <= Q_ENV
+_ENV = {}
+
+
+def cost_envelope(n):
+    """A certified NON-INCREASING majorant for the peel cost.
+
+    cost(q) itself is NOT monotone: at n = 8e9 it rises from 0.0095116 at q = 97
+    to 0.0095721 at q = 101, because c_1 = floor(sqrt(M/q)) drops from 32 to 31
+    there and the tabulated c_theta(qd^2) entering the short-range term of
+    Proposition 4.3 are not monotone in the modulus.  Any argument that reduces
+    infinitely many completions to one worst case therefore cannot appeal to
+    monotonicity of cost.
+
+    Instead we build the running supremum from the right,
+
+        cost_bar(q) = sup { cost(q') : q' >= q prime },
+
+    which is non-increasing by construction and needs no monotonicity
+    assumption whatever.  It is computable because cost(q) is evaluated exactly
+    for the finitely many primes q <= Q_ENV, while for q > Q_ENV we use
+    cost(q) <= crude(q), which IS provably non-increasing (Lemma 5.3 and the
+    elementary bound), so the supremum over that tail is attained at the first
+    prime above Q_ENV.
+
+    Returns (env, tail): env[q] = cost_bar(q) for primes q <= Q_ENV, and tail is
+    the uniform bound for q > Q_ENV.  Where cost happens to be monotone the
+    envelope coincides with it, so nothing is lost.
+    """
+    key = n
+    if key in _ENV:
+        return _ENV[key]
+    ps = [p for p in range(3, Q_ENV + 1)
+          if all(p % d for d in range(2, int(sqrt(p)) + 1))]
+    t = Q_ENV + 1
+    while not all(t % d for d in range(2, int(sqrt(t)) + 1)):
+        t += 1
+    tail = crude_cost(t, n)
+    env, run = {}, tail
+    for p in reversed(ps):
+        eb = E_B(p, n)
+        cw = (1.0 - lam(p)) * C_ARTIN + eb if eb is not None else float("inf")
+        run = max(run, min(cw, crude_cost(p, n)))
+        env[p] = run
+    _ENV[key] = (env, tail)
+    return env, tail
+
+
+def cost_bar(q, n):
+    env, tail = cost_envelope(n)
+    return env[q] if q <= Q_ENV else min(tail, crude_cost(q, n))
+
+
 def margin(primes, n, s):
     """Margin for base = primes[:s], peeling primes[s:].  None if inadmissible."""
     base, peeled = list(primes[:s]), list(primes[s:])
@@ -125,16 +178,17 @@ def margin(primes, n, s):
     er = E_R(m, n)
     if er is None:
         return None
+    # Each peeled prime is charged the ENVELOPE cost_bar, not cost itself, so
+    # that the evaluation at the worst completion bounds every larger
+    # completion without assuming cost is monotone.  The bracket is taken in
+    # its strictest form, debiting (1 - lambda_q) for EVERY peeled prime: the
+    # constraint is only needed for those actually bounded by Proposition 4.3,
+    # and dropping a prime from that set only increases the bracket, so this is
+    # valid whichever currency achieves the minimum at each prime.
     total, bracket = 0.0, beta(base)
     for q in peeled:
-        cw = E_B(q, n)
-        cost_w = (1.0 - lam(q)) * C_ARTIN + cw if cw is not None else None
-        cost_c = crude_cost(q, n)
-        if cost_w is not None and cost_w <= cost_c:
-            bracket -= (1.0 - lam(q))
-            total += cost_w
-        else:
-            total += cost_c
+        total += cost_bar(q, n)
+        bracket -= (1.0 - lam(q))
     if bracket < 0.0:
         return None
     return beta(base) * C_ARTIN - er - total - LOG2 / n
