@@ -3,7 +3,7 @@
 ComputeRkBound.py
 =================
 Explicit lower bound for R_k(n), k odd square-free, (n,k)=1, n >= 8e9, via the
-divisor-sum form of Proposition 4.1 (the explicit Estermann estimate, for any
+divisor-sum form of Theorem 4.1 (the explicit Estermann estimate, for any
 omega(k)):
 
   R_k(n)/n  >  C_Artin * prod_{q|k} lambda_q  -  (I) - (II) - (III),
@@ -38,7 +38,7 @@ without).
 Companion to ComputeBqBound.py. Pure Python 3 standard library; no third-party deps.
 
 Usage:
-    python3 ComputeRkBound.py --k 15                  # R_15(8e9)/n   (Corollary 4.2)
+    python3 ComputeRkBound.py --k 15                  # R_15(8e9)/n   (Corollary 4.3)
     python3 ComputeRkBound.py --k 105 --n 2.55e11     # evaluate at a chosen n
     python3 ComputeRkBound.py --k 429 --threshold     # least n with R_k(n) > 0
 """
@@ -49,7 +49,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from math import gcd
 
-# SHARPEN: when True, Sigma_2 is bounded by Proposition 4.1's sharpened form --
+# SHARPEN: when True, Sigma_2 is bounded by Theorem 4.1's sharpened form --
 #   (W) the Brun-Titchmarsh loss factor log n / log(n/(k d^2)) is kept INSIDE the
 #       tail sum instead of being replaced by its endpoint value 1/(1-2A); and
 #   (R) the coprimality condition (n-p,k)=1 is retained rather than dropped, so
@@ -490,7 +490,7 @@ def evaluate(n, k, c, mu, phi, bennett, rr_table1, rr_table2, tail, alpha, beta,
     prefix = bt_prefix(n, k, c, mu, spf) if SHARPEN else None
     suffix = sieve_suffix(k, mu, spf) if SHARPEN else None
     A_star, err = minimize_A(n, k, alpha, total, tail, prefix, suffix)
-    # Proposition 4.1 requires Z >= n^{A}/sqrt(k) (the tail truncation must reach the
+    # Theorem 4.1 requires Z >= n^{A}/sqrt(k) (the tail truncation must reach the
     # trivial-range cutoff). Z is fixed at MAX_TABLE_MOD; assert the hypothesis holds
     # at the optimised A rather than return a bound whose derivation is unjustified.
     # Raising Z would only decrease (II), so a failure here means Z must be increased,
@@ -526,7 +526,7 @@ def find_threshold(k, c, mu, phi, bennett, rr_table1, rr_table2, tail, alpha, be
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Explicit lower bound for R_k(n) (Proposition 4.1)")
+    parser = argparse.ArgumentParser(description="Explicit lower bound for R_k(n) (Theorem 4.1)")
     parser.add_argument("--k", type=int, required=True, help="odd square-free modulus k")
     parser.add_argument("--n", type=float, default=DEFAULT_N, help="evaluation point (default 8e9)")
     parser.add_argument("--threshold", action="store_true", help="also report the least n with R_k(n) > 0")
