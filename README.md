@@ -10,12 +10,17 @@ W. Hoare, E. S. Lee and A. Pearce-Crump.
 
 The proof has two computational halves, and both are here.
 
-* **Analytic** (Python). Explicit lower bounds for `R_k(n)` (Proposition 4.1)
-  and upper bounds for `B_q(n)` (Proposition 4.3), assembled into the five-case
-  division of Lemma 5.4 that covers *every* odd square-free `k` with
+* **Analytic** (Python). Explicit lower bounds for `R_k(n)` (Theorem 4.1) and
+  upper bounds for `B_q(n)` (Theorem 4.4), assembled into the five-case
+  division of Lemma 5.6 that covers *every* odd square-free `k` with
   `omega(k) = 5`. Valid for `n >= 8e9`.
 * **Finite** (C++, plus one Python script). Exhaustive verification over
   `108 <= n <= 2e12`. The two halves meet far inside the verified range.
+
+Moduli with `omega(k) <= 4` are **not** computed here. They follow from the
+`omega(k) = 5` division by Lemma 5.5 (monotonicity in the modulus): if `k | K`
+then `R_K(n) <= R_k(n)`, so adjoining primes to `k` until it has five gives
+`R_k(n) >= R_K(n)`. See *The `omega(k) <= 4` trees are diagnostics* below.
 
 ## Requirements
 
@@ -30,14 +35,14 @@ The proof has two computational halves, and both are here.
 
 ```
 .
-├── ComputeRkBound.py          Proposition 4.1  (SHARPEN toggle)
-├── ComputeBqBound.py          Proposition 4.3  (SHARPEN_B toggle)
-├── ScanOmega.py               base-plus-peel criterion for a single k
-├── CoverageTree.py            derives the case division of Lemma 5.4
+├── ComputeRkBound.py          Theorem 4.1      (SHARPEN toggle)
+├── ComputeBqBound.py          Theorem 4.4      (SHARPEN_B toggle)
+├── ScanOmega.py               base-plus-peel criterion (11) for a single k
+├── CoverageTree.py            derives the case division of Lemma 5.6
 ├── CertifyCases.py            directed-rounding certificate  -> case_certificates.json
 ├── VerifyCertificate.py       independent re-check of that archive
 ├── Threshold.py               exact sharp thresholds; certifies 108 <= n <= 1e4
-├── verify_R_classes.py        residue-class structure behind Proposition 4.1(b)
+├── verify_R_classes.py        residue-class structure behind Theorem 4.1(b)
 ├── case_certificates.json     the certificate archive (generated)
 ├── bennett_c_theta.tsv        \
 ├── bennett_x0.tsv              |  imported prime-counting data
@@ -55,44 +60,115 @@ The proof has two computational halves, and both are here.
         ├── odd_results.csv
         ├── even_results.csv
         ├── even_deep_checks.csv
+        ├── odd_run.log.gz
+        ├── even_run.log.gz
         └── run_manifest.txt
 ```
+
+## What corresponds to what
+
+| paper | produced by | command |
+|---|---|---|
+| Theorem 4.1 | `ComputeRkBound.py` | `--k K` |
+| Corollary 4.3 (five constants) | `ComputeRkBound.py` | `--k 1,3,15,21,105` |
+| Theorem 4.4 | `ComputeBqBound.py` | `--bq Q` |
+| Remark 5.2 (`cost` not monotone) | `ScanOmega.py` | `cost_bar`, `crude_cost` |
+| Lemma 5.3 (certified envelope) | `ScanOmega.py` | `cost_envelope` |
+| Equation (10) (`crude`) | `ScanOmega.py` | `crude_cost` |
+| Lemma 5.6 + Table 2 | `CoverageTree.py` | `--omega 5` |
+| Table 3 (the `omega(k)=6` obstruction) | `CoverageTree.py` | `--omega 6` |
+| Table 1 (sharp thresholds) | `Threshold.py` | `--rmin 2 --rmax 6` |
+| Appendix A (certificate trail) | `CertifyCases.py`, `VerifyCertificate.py` | — |
+| Section 6 (finite range) | `verification/*.cpp`, `Threshold.py --certify` | — |
+
+Lemma 5.5 has no script: it is a two-line monotonicity argument.
 
 ## Reproducing the analytic constants
 
 ```
-python3 ComputeRkBound.py --k 105          # Corollary 4.2
-python3 ComputeBqBound.py --bq 13          # Proposition 4.3
-python3 CoverageTree.py --omega 5          # regenerates Table 3 (Lemma 5.4)
+python3 ComputeRkBound.py --k 105          # Corollary 4.3
+python3 ComputeBqBound.py --bq 13          # Theorem 4.4
+python3 CoverageTree.py --omega 5          # regenerates Table 2 (Lemma 5.6)
 python3 CertifyCases.py                    # writes case_certificates.json
 python3 VerifyCertificate.py               # re-checks it; exit status is the verdict
 python3 verify_R_classes.py
 ```
 
-`CoverageTree.py --omega 6` reproduces Table 4: the ten moduli that defeat the
-method at six prime factors.
+`CoverageTree.py --omega 6` reproduces Table 3: the twenty-three moduli that
+defeat the method at six prime factors, in seven families grouped by their
+first five prime factors. The worst is `k = 255255 = 3*5*7*11*13*17` at
+`-0.023151`; every family terminates, `3*5*7*11*13*q` clearing at `q = 71` and
+the rest sooner.
+
+Expected output of `--omega 5`, which is Table 2:
+
+```
+omega(k) = 5, n = 8.000e+09:  COVERED   (5 cases, 0 failing)
+  ('>=5',)            cmp     +0.011016   [5, 7, 11, 13, 17]    k=85085
+  (3, '>=11')         peel4   +0.028663   [3, 11, 13, 17, 19]   k=138567
+  (3, 5, '>=11')      peel3   +0.017663   [3, 5, 11, 13, 17]    k=36465
+  (3, 7, '>=11')      peel3   +0.026240   [3, 7, 11, 13, 17]    k=51051
+  (3, 5, 7, '>=11')   peel2   +0.012422   [3, 5, 7, 11, 13]     k=15015
+```
+
+`VerifyCertificate.py` should end with
+
+```
+ALL 10 RECORDS INDEPENDENTLY VERIFIED (least margin +0.0110157)
+```
 
 ### The toggles
 
-Proposition 4.1 is sharpened in two independent ways: the Brun-Titchmarsh loss
+Theorem 4.1 is sharpened in two independent ways: the Brun-Titchmarsh loss
 factor is weighted pointwise across the sieve range rather than replaced by its
 endpoint value, and the coprimality condition is retained inside that range
-rather than discarded. Proposition 4.3 carries the first of these. Neither
-touches the main term, the short-range error, or any imported estimate.
+rather than discarded. Theorem 4.4 carries the first of these. Neither touches
+the main term, the short-range error, or any imported estimate.
 
-`ComputeRkBound.py` and `ComputeBqBound.py` each carry a flag (`SHARPEN`,
-`SHARPEN_B`) restoring the unsharpened form of its proposition, so that a
-reader can switch the sharpenings off and see exactly what they are worth:
+`ComputeRkBound.py` and `ComputeBqBound.py` each carry a module-level flag
+(`SHARPEN`, `SHARPEN_B`, both `True` by default) restoring the unsharpened form
+of its theorem, so that a reader can switch the sharpenings off and see exactly
+what they are worth. They are constants near the top of each file, not command
+line options.
 
 | quantity | unsharpened | sharpened |
 |---|---|---|
-| `R_3(n)/n`   | 0.16812 | 0.19353 |
-| `R_15(n)/n`  | 0.09527 | 0.14988 |
-| `R_51(n)/n`  | 0.05555 | 0.15955 |
-| `E_B(13)`    | 0.02036 | 0.01601 |
+| `R(n)/n`     |  0.315827 | 0.326652 |
+| `R_3(n)/n`   |  0.168126 | 0.193535 |
+| `R_15(n)/n`  |  0.095272 | 0.149887 |
+| `R_21(n)/n`  |  0.093162 | 0.158463 |
+| `R_51(n)/n`  |  0.055553 | 0.159553 |
+| `R_105(n)/n` | -0.037102 | 0.109072 |
+| `E_B(13)`    |  0.020356 | 0.016006 |
 
-With the flags off, `k = 105` has no positive direct bound below
-`n ~ 1.77e11`; with them on it is positive at `8e9` with margin `+0.109`.
+All at `n = 8e9`. With the flags off, `k = 105` has no positive direct bound at
+the floor at all: `--k 105 --threshold` reports that positivity first holds at
+`n ~ 1.774e11`. With them on it is positive at `8e9` with margin `+0.109`.
+
+`--threshold` searches only up to `1e13`, which is where the imported
+prime-counting tables end; for moduli whose unsharpened crossover lies beyond
+that it reports "not established below 1e13" rather than extrapolating.
+
+### The `omega(k) <= 4` trees are diagnostics
+
+`CoverageTree.py --omega r` runs for any `r`, but only `r = 5` and `r = 6`
+correspond to anything in the paper. The paper derives `omega(k) <= 4` from
+`omega(k) = 5` by Lemma 5.5 rather than computing it, and the smaller trees are
+worth keeping only as a check on the machinery. Their minima are
+
+```
+r=0: +0.326653   r=1: +0.140583   r=2: +0.034571
+r=3: +0.010123   r=4: +0.019484   r=5: +0.011016
+```
+
+Two things to note about these. They are *not* monotone in `r`: the `r = 3`
+tree bottoms out below the `r = 5` tree, at the family `(3, >=5)` with worst
+completion `k = 105`, because that family must be bounded with base 3 and two
+peels. And that is why the paper takes the monotonicity route: embedding
+`k = 105` into `K = 15015` earns it case 5's base-105 evaluation and the
+constant `+0.011016`, which is better than the `+0.010123` its own tree gives.
+The uniform constant quoted in Lemma 5.6 is `0.011`, the least of the five
+`r = 5` margins, and it is valid for every `r <= 5`.
 
 ### Directed rounding
 
@@ -102,8 +178,11 @@ down, error terms up. Artin's constant is replaced by the strict lower bound
 rounded only at the last step; a safety envelope is subtracted from every
 margin, far above the measured floating-point error. Because the admissible set
 of imported bounds changes at `x = 1e10`, each margin is certified separately
-on `[8e9, 1e10]` and on `(1e10, inf)`; every error term decreases in `n` on each
-interval, so the left endpoint is a rigorous minimum for the margin.
+on `[8e9, 1e10]` and on `(1e10, inf)`. Within an interval no extrapolation is
+involved: Theorems 4.1 and 4.4 are stated at a reference point `n0` and hold at
+every `n >= n0`, so evaluating once at the left endpoint certifies the interval
+outright. The certificates record `Y` alongside `Z` so that the hypothesis
+`Y <= Z` can be checked for every row.
 
 ## Reproducing the finite verification
 
@@ -126,10 +205,25 @@ reproduces the published thresholds 36 and 60 (with the moduli 33 and
 python3 Threshold.py --rmin 2 --rmax 6 --nmax 3000
 ```
 
+which prints the "stated" column of Table 1:
+
+```
+  r  largest failing n      n_0   defeating modulus
+  2                 35       36   n = 35, k = 33 = 3*11
+  3                 59       60   n = 59, k = 759 = 3*11*23
+  4                 83       84   n = 83, k = 3795 = 3*5*11*23
+  5                107      108   n = 107, k = 275655 = 3*5*17*23*47
+  6                167      168   n = 167, k = 11919435 = 3*5*11*29*47*53
+```
+
+Table 1 in the paper resolves these by the parity of `k` and of `n` as well;
+the threshold 108 is forced by odd `k` at odd `n` alone, and for even `n` the
+sharp thresholds at `omega(k) <= 5` are 28 (odd `k`) and 18 (even `k`).
+
 ### The C++ run
 
 Build without `-DUSE_BPSW`: the results of record use the unconditional
-twelve-base Miller–Rabin test of Sorenson–Webster. The BPSW variant is faster
+twelve-base Miller–Rabin test of Sorenson–Webster.  The BPSW variant is faster
 but exhaustive only conjecturally.
 
 ```
