@@ -382,6 +382,28 @@ def endpoint_term(n, k, c, mu):
     return cnt * math.log(n) / n
 
 
+_SUFFIX = {}
+
+
+def sieve_suffix(k, mu, spf):
+    """S[y] = sum_{y < d <= Z, (d,k)=1} mu^2(d)/phi(d^2), cached per k.
+
+    Used to bound the Brun-Titchmarsh range ABOVE the evaluation point sharply,
+    instead of leaning on Ramare's 4/y across the whole tail: the exact sum is
+    available for d <= Z and only the genuine remainder beyond Z needs 4/Z.
+    """
+    if k not in _SUFFIX:
+        S = [0.0] * (Z + 2)
+        run = 0.0
+        for d in range(Z, 0, -1):
+            S[d] = run
+            if mu[d] and gcd(d, k) == 1:
+                run += 1.0 / phi_square(d, spf)
+        S[0] = run
+        _SUFFIX[k] = S
+    return _SUFFIX[k]
+
+
 def bt_prefix(n, k, c, mu, spf):
     """Prefix sums of the d-dependent Brun-Titchmarsh weight over the Sigma_2 range.
 
@@ -411,13 +433,27 @@ def bt_prefix(n, k, c, mu, spf):
     return P
 
 
-def err_bound(n, A, k, alpha, first_sum_total, tail, prefix=None):
+def err_bound(n, A, k, alpha, first_sum_total, tail, prefix=None, suffix=None):
     logn = math.log(n)
     if SHARPEN:
         # (II): the completed principal tail (coefficient alpha) plus the
         # Brun-Titchmarsh range, which after (R) also carries the factor alpha.
+        # Sigma_2 runs over c < d <= D(n) = n^A/sqrt(k), which GROWS with n.
+        # The bound must hold for every n in [n0, infinity), so the sum is
+        # evaluated at the interval's left endpoint n0 (= n here) and the range
+        # above it is absorbed by a Ramare tail:
+        #     sum_{c<d<=D(n)} mu^2 w_n / phi   <=   sum_{c<d<=Y} mu^2 w_{n0}/phi
+        #                                          + (1/(1-2A)) * 4/Y,
+        # where Y = D(n0).  This is legitimate because w_n(d) is DECREASING in n
+        # at fixed d, so w_{n0} dominates on d <= Y, while on Y < d <= D(n) the
+        # weight never exceeds its endpoint value w(D) = 1/(1-2A).  Without this
+        # remainder the certification would not propagate past the n at which
+        # D(n) overtakes the tabulated range.
         D = int(math.floor(n ** A / math.sqrt(k)))
-        term_II = alpha * (tail + 2.0 * prefix[min(D, Z)])
+        if D < 1 or D > Z or not math.isfinite(prefix[D]):
+            return math.inf                      # parameter choice inadmissible
+        ramare_bt = (suffix[D] + 4.0 / Z) / (1.0 - 2.0 * A)
+        term_II = alpha * (tail + 2.0 * (prefix[D] + ramare_bt))
         # (III): Sigma_4 as before; the bad-gcd range now also absorbs the
         # exceptional-prime term of (R), at most sum_{q|k} log q = log k per d.
         sigma4 = (k * n ** (-2.0 * A) + math.sqrt(k) * n ** (-A)) * logn
@@ -439,8 +475,8 @@ def err_bound(n, A, k, alpha, first_sum_total, tail, prefix=None):
     )
 
 
-def minimize_A(n, k, alpha, first_sum_total, tail, prefix=None):
-    f = lambda A: err_bound(n, A, k, alpha, first_sum_total, tail, prefix)
+def minimize_A(n, k, alpha, first_sum_total, tail, prefix=None, suffix=None):
+    f = lambda A: err_bound(n, A, k, alpha, first_sum_total, tail, prefix, suffix)
     best_i = min(range(500, 4900), key=lambda i: f(i/10000))
     bestA = best_i / 10000.0
     lo, hi = max(1e-6, bestA - 0.002), min(0.499999, bestA + 0.002)
@@ -452,7 +488,8 @@ def evaluate(n, k, c, mu, phi, bennett, rr_table1, rr_table2, tail, alpha, beta,
     total, broadbent_total, non_m1_total, x0_req = compute_first_sum(n, k, c, mu, phi, bennett, rr_table1, rr_table2)
     total += endpoint_term(n, k, c, mu)
     prefix = bt_prefix(n, k, c, mu, spf) if SHARPEN else None
-    A_star, err = minimize_A(n, k, alpha, total, tail, prefix)
+    suffix = sieve_suffix(k, mu, spf) if SHARPEN else None
+    A_star, err = minimize_A(n, k, alpha, total, tail, prefix, suffix)
     # Proposition 4.1 requires Z >= n^{A}/sqrt(k) (the tail truncation must reach the
     # trivial-range cutoff). Z is fixed at MAX_TABLE_MOD; assert the hypothesis holds
     # at the optimised A rather than return a bound whose derivation is unjustified.
