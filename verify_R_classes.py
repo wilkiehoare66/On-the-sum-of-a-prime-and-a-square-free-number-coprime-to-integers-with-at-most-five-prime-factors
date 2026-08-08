@@ -3,7 +3,7 @@
 verify_R_classes.py
 ===================
 Brute-force check of the residue-class structure underlying the (R) step of
-Proposition 4.1 (the retention of the coprimality condition in Sigma_2).
+Theorem 4.1(b) (the retention of the coprimality condition in Sigma_2).
 
 CLAIM.  Let k be odd and square-free, (n,k)=1, and let d satisfy (d,kn)=1.
 Consider the residues r mod k d^2 with
