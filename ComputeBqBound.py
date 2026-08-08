@@ -109,6 +109,22 @@ def w_prefix(q, n, ctx, family):
     return ctx["wpre"][key]
 
 
+def coprime_suffix(q, ctx):
+    """S[y] = sum_{y < d <= Z, (d,q)=1} mu^2(d)/phi(d^2), cached per q."""
+    key = ("cs", q)
+    if key not in ctx.setdefault("wpre", {}):
+        mu, spf = ctx["mu"], ctx["spf"]
+        S = [0.0] * (Z + 2)
+        run = 0.0
+        for d in range(Z, 0, -1):
+            S[d] = run
+            if mu[d] and gcd(d, q) == 1:
+                run += 1.0 / phi_square(d, spf)
+        S[0] = run
+        ctx["wpre"][key] = S
+    return ctx["wpre"][key]
+
+
 def suffix_tail(q, ctx):
     if q not in ctx["suf"]:
         mu, spf = ctx["mu"], ctx["spf"]
@@ -163,18 +179,33 @@ def Bq_error(q, n, ctx, A=None, c1=None, c2=None, Z1=None, Z2=None):
 
     P1 = w_prefix(q, n, ctx, 1) if SHARPEN_B else None
     P2 = w_prefix(q, n, ctx, 2) if SHARPEN_B else None
+    # exact tail sum_{y<d<=Z,(d,q)=1} mu^2(d)/phi(d^2), for the range above the
+    # evaluation point; sharper than leaning on Ramare's 4/y across all of it
+    T1 = T2 = coprime_suffix(q, ctx) if SHARPEN_B else None
 
     def E_med(A):
         d1 = (1 - 2 * A) * logn - math.log(q)
         if d1 <= 0:
             return None
         if SHARPEN_B:
-            D1 = min(int(floor(n ** A)), Z)
-            D2 = min(int(floor(n ** A / q)), Z)
-            W1 = P1[max(D1, c1)] - P1[c1]
-            W2 = P2[max(D2, c2)] - P2[c2]
-            if W1 == math.inf or W2 == math.inf:
+            # As in Proposition 4.1, the two medium ranges END AT n^A and n^A/q,
+            # which grow with n.  Truncating them at Z would drop positive terms
+            # once n is large, so each is evaluated at the interval's left
+            # endpoint and the range above it absorbed by a Ramare tail, using
+            # that w_i is decreasing in n at fixed d and never exceeds its
+            # endpoint value f_i.  The result is uniform on [n0, infinity).
+            D1 = int(floor(n ** A))
+            D2 = int(floor(n ** A / q))
+            if D1 < 1 or D2 < 1 or D1 > Z or D2 > Z:
                 return None
+            W1 = P1[D1] - P1[c1]
+            W2 = P2[D2] - P2[c2]
+            if not (math.isfinite(W1) and math.isfinite(W2)):
+                return None
+            f1 = logn / d1
+            f2 = 1.0 / (1 - 2 * A)
+            W1 += f1 * (T1[D1] + 4.0 / Z)
+            W2 += f2 * (T2[D2] + 4.0 / Z)
             return (S1 + 2.0 * W1) / (q - 1) + (S2 + 2.0 * W2) / (q * (q - 1))
         f1 = logn / d1
         f2 = 1.0 / (1 - 2 * A)
