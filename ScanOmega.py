@@ -4,7 +4,7 @@ ScanOmega.py
 ============
 Evaluates the base-plus-peel criterion for an arbitrary odd square-free modulus
 k = q_1 ... q_r (q_1 < ... < q_r), at a given n, using the sharpened
-Propositions 4.1 and 4.3 (ComputeRkBound.py / ComputeBqBound.py with
+Theorems 4.1 and 4.4 (ComputeRkBound.py / ComputeBqBound.py with
 SHARPEN / SHARPEN_B on).
 
 THE CRITERION.  Choose a base m = q_1...q_s (an initial segment) and peel the
@@ -16,10 +16,10 @@ W_n = prod_{p nmid n}(1 - 1/(p(p-1))):
 
 Peeled primes may be costed in either of two currencies:
 
-  (W-currency)  via Proposition 4.3, cost  (1 - lambda_q) C_Artin + E_B(q,n).
+  (W-currency)  via Theorem 4.4, cost  (1 - lambda_q) C_Artin + E_B(q,n).
                 Requires the bracket  beta(m) - sum_{q in W} (1 - lambda_q) >= 0,
                 since only then does W_n >= C_Artin apply in the right direction.
-  (crude)       via the elementary bound (5) / Lemma 5.2, cost
+  (crude)       via the elementary bound (10) / Lemma 5.4, cost
                     1/q + (q-1)/(840 log n)                for q <= 100,
                     1/(q-1) + 1/(160 log n)                for 100 < q <= 1e5,
                     0.00026                                for q > 1e5.
@@ -30,7 +30,7 @@ the cheaper of the two, and
 
     margin = beta(m) C_Artin - E_R(m,n) - sum_q cost(q) - log2/n.
 
-s = r is the direct bound (no peel); s = 0 is the Theorem 2.4 comparison, with
+s = r is the direct bound (no peel); s = 0 is the comparison of Section 3, with
 E_R(1,n) the genuine explicit error at k = 1 rather than a flat lower bound.
 
 Usage:
@@ -74,7 +74,7 @@ def beta(primes):
 
 
 def E_B(q, n):
-    """Proposition 4.3 error for B_q, or None if the modulus cap forbids it."""
+    """Theorem 4.4 error for B_q, or None if the modulus cap forbids it."""
     if q > MAXMOD:
         return None
     key = (q, n)
@@ -87,9 +87,9 @@ def E_B(q, n):
 
 
 def E_R(m, n):
-    """Proposition 4.1 error for R_m, or None if the modulus cap forbids it.
+    """Theorem 4.1 error for R_m, or None if the modulus cap forbids it.
 
-    Proposition 4.1 needs an admissible c_theta(e d^2) for every e | m and
+    Theorem 4.1 needs an admissible c_theta(e d^2) for every e | m and
     d <= c, so c = floor(sqrt(MAXMOD/m)); c >= 1 requires m <= MAXMOD, and the
     tail term decreases like 1/c, so in practice m <= MAXMOD/4 (c >= 2) is the
     working range.
@@ -107,7 +107,7 @@ def E_R(m, n):
 
 
 def crude_cost(q, n):
-    """The elementary upper bound for B_q(n)/n: eq (5) and Lemma 5.2."""
+    """The elementary upper bound for B_q(n)/n: equation (10) and Lemma 5.4."""
     logn = math.log(n)
     if q <= 100:
         return 1.0 / q + (q - 1.0) / (840.0 * logn)
@@ -126,7 +126,7 @@ def cost_envelope(n):
     cost(q) itself is NOT monotone: at n = 8e9 it rises from 0.0095116 at q = 97
     to 0.0095721 at q = 101, because c_1 = floor(sqrt(M/q)) drops from 32 to 31
     there and the tabulated c_theta(qd^2) entering the short-range term of
-    Proposition 4.3 are not monotone in the modulus.  Any argument that reduces
+    Theorem 4.4 are not monotone in the modulus.  Any argument that reduces
     infinitely many completions to one worst case therefore cannot appeal to
     monotonicity of cost.
 
@@ -137,9 +137,17 @@ def cost_envelope(n):
     which is non-increasing by construction and needs no monotonicity
     assumption whatever.  It is computable because cost(q) is evaluated exactly
     for the finitely many primes q <= Q_ENV, while for q > Q_ENV we use
-    cost(q) <= crude(q), which IS provably non-increasing (Lemma 5.3 and the
-    elementary bound), so the supremum over that tail is attained at the first
-    prime above Q_ENV.
+    cost(q) <= crude(q) together with crude(q) <= crude(Q_ENV^+) for every
+    prime q > Q_ENV: the second case of (10) is decreasing in q, and the third
+    is the constant 0.00026 < 1/1008 <= crude(1009).  So the supremum over that
+    tail is bounded by crude at the first prime above Q_ENV.
+
+    Note that crude is NOT globally non-increasing, and the argument does not
+    claim it is: at the junction q = M the second case of (10) decays like
+    1/(160 log n) while the third is constant, so the third is the larger once
+    n > e^25 ~ 7.2e10.  Only the domination above Q_ENV is used, and that holds
+    for every n >= 8e9 with a factor of nearly four to spare.  This is the tail
+    step in the proof of Lemma 5.3.
 
     Returns (env, tail): env[q] = cost_bar(q) for primes q <= Q_ENV, and tail is
     the uniform bound for q > Q_ENV.  Where cost happens to be monotone the
@@ -182,7 +190,7 @@ def margin(primes, n, s):
     # that the evaluation at the worst completion bounds every larger
     # completion without assuming cost is monotone.  The bracket is taken in
     # its strictest form, debiting (1 - lambda_q) for EVERY peeled prime: the
-    # constraint is only needed for those actually bounded by Proposition 4.3,
+    # constraint is only needed for those actually bounded by Theorem 4.4,
     # and dropping a prime from that set only increases the bracket, so this is
     # valid whichever currency achieves the minimum at each prime.
     total, bracket = 0.0, beta(base)
