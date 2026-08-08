@@ -86,13 +86,13 @@ reader can switch the sharpenings off and see exactly what they are worth:
 
 | quantity | unsharpened | sharpened |
 |---|---|---|
-| `R_3(n)/n`   | 0.16812 | 0.19452 |
-| `R_15(n)/n`  | 0.09527 | 0.15123 |
-| `R_51(n)/n`  | 0.05555 | 0.16205 |
-| `E_B(13)`    | 0.02036 | 0.01566 |
+| `R_3(n)/n`   | 0.16812 | 0.19353 |
+| `R_15(n)/n`  | 0.09527 | 0.14988 |
+| `R_51(n)/n`  | 0.05555 | 0.15955 |
+| `E_B(13)`    | 0.02036 | 0.01601 |
 
 With the flags off, `k = 105` has no positive direct bound below
-`n ~ 1.77e11`; with them on it is positive at `8e9` with margin `+0.111`.
+`n ~ 1.77e11`; with them on it is positive at `8e9` with margin `+0.109`.
 
 ### Directed rounding
 
