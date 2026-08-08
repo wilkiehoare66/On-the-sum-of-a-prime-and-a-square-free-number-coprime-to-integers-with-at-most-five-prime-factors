@@ -6,7 +6,7 @@ Explicit upper bound for the divisible part
 
         B_q(n) = sum_{p<n, q|(n-p)} mu^2(n-p) log p  =  R(n) - R_q(n),
 
-which is Proposition 4.3 of the paper.  B_q(n) is the weighted mass discarded
+which is Theorem 4.4 of the paper.  B_q(n) is the weighted mass discarded
 when the coprimality condition is tightened by one further prime q, and it is
 the quantity subtracted for each peeled prime in the base-plus-peel criterion
 
@@ -20,7 +20,7 @@ This script evaluates B_q alone.  The criterion itself, for an arbitrary odd
 square-free k, lives in ScanOmega.py; the case division it induces is derived
 by CoverageTree.py and certified by CertifyCases.py.
 
-Two-family B_q (Proposition 4.3).  Imposing q | (n-p) splits the sieve modulus
+Two-family B_q (Theorem 4.4).  Imposing q | (n-p) splits the sieve modulus
 lcm(q,d^2) into a family qd^2 (when (d,q)=1) and a family q^2 b^2 (writing
 d=qb). The two families carry SEPARATE cutoffs: c1,Z1 for qd^2 with large-range
 boundary d>n^A, and c2,Z2 for q^2 b^2 with boundary b>n^A/q (since
@@ -74,7 +74,7 @@ def build_context():
             "rr2": load_rr_table2(here / "rr_theta_table2.tsv"), "suf": {}}
 
 
-# SHARPEN_B: when True, Proposition 4.3's two Brun-Titchmarsh loss factors f1, f2
+# SHARPEN_B: when True, Theorem 4.4's two Brun-Titchmarsh loss factors f1, f2
 # are kept INSIDE their respective tail sums as the d-dependent weights
 #     w1(d) = log n / log(n / (q d^2))      (family q d^2,   c1 < d <= n^A)
 #     w2(b) = log n / log(n / (q^2 b^2))    (family q^2 b^2, c2 < b <= n^A/q)
@@ -188,7 +188,7 @@ def Bq_error(q, n, ctx, A=None, c1=None, c2=None, Z1=None, Z2=None):
         if d1 <= 0:
             return None
         if SHARPEN_B:
-            # As in Proposition 4.1, the two medium ranges END AT n^A and n^A/q,
+            # As in Theorem 4.1, the two medium ranges END AT n^A and n^A/q,
             # which grow with n.  Truncating them at Z would drop positive terms
             # once n is large, so each is evaluated at the interval's left
             # endpoint and the range above it absorbed by a Ramare tail, using
@@ -260,7 +260,7 @@ def R_lower(m, n, ctx):
 
 def main():
     ap = argparse.ArgumentParser(
-        description="Explicit two-family upper bound for B_q(n) (Proposition 4.3)")
+        description="Explicit two-family upper bound for B_q(n) (Theorem 4.4)")
     ap.add_argument("--bq", type=int, required=True,
                     help="odd prime q; prints the B_q upper-bound error at n")
     ap.add_argument("--n", type=float, default=DEFAULT_N,
