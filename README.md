@@ -1,6 +1,6 @@
 # On the sum of a prime and a square-free number coprime to integers with at most five prime factors
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21813035.svg)](https://doi.org/10.5281/zenodo.21813035)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21834718.svg)](https://doi.org/10.5281/zenodo.21813035)
 
 Code for the verifications required in the paper *"On the sum of a prime and a
 square-free number coprime to integers with at most five prime factors"* by
