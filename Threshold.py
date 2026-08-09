@@ -28,7 +28,7 @@ supp(w) empty (that is, n-1 or n-2 is prime) then no k defeats n.
 For EVEN k = 2m the square-free summand must also be odd, so the relevant family
 is W_odd(n) = { w in W(n) : w odd } and, omega(k) <= r allowing omega(m) <= r-1,
 the criterion is tau_odd(n) > r-1.  For odd n the even-k case is the genuine
-parity obstruction and is excluded from the theorem, exactly as at omega(k)<=3.
+parity obstruction and is excluded from the theorem.
 
 EARLY EXIT.  Hitting-set size is monotone under adding constraints: if some
 SUBFAMILY already needs more than r primes, so does the whole family.  Witnesses
