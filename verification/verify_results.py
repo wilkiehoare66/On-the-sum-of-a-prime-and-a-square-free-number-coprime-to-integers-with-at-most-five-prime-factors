@@ -2,22 +2,21 @@
 """
 verify_results.py
 =================
-Independent cross-verifier for the exhaustive finite computation, as required by
-Section 10 of the referee report (items 7 and 8). It reads the per-chunk CSV
+Independent cross-verifier for the exhaustive finite computation. It reads the per-chunk CSV
 output of the three C++ verifiers and checks, WITHOUT importing or trusting any
 of their code:
 
-  1. CHUNK COVERAGE (item 7): the recorded chunks tile each verifier's range
+  1. CHUNK COVERAGE: the recorded chunks tile each verifier's range
      [RANGE_START, RANGE_END] with no gap and no overlap, every chunk has status
      OK, and no chunk is recorded twice (a resume must not double-count).
-  2. EXACT COUNT (item 8): the number of integers covered equals the exact
+  2. EXACT COUNT: the number of integers covered equals the exact
      arithmetic count of the range (accounting for the odd-only stride of the
      odd verifier), so "every integer in range is accounted for" is asserted,
      not assumed.
-  3. WITNESS RE-DERIVATION (item 7): for a random sample of n in each range,
+  3. WITNESS RE-DERIVATION: for a random sample of n in each range,
      this script INDEPENDENTLY finds a valid witness of the same kind the
      corresponding verifier claims to have found -- a prime p = n - s with s
-     square-free (large-prime), or the four-disjoint-support square-free
+     square-free (large-prime), or the six disjoint-support square-free
      witnesses (odd), or NUM_SPLITS distinct Goldbach splits (even) -- using its own
      primality and square-free routines below. This re-checks primality,
      square-freeness and support-disjointness on real data, independently.
@@ -331,7 +330,7 @@ def main():
     rng = random.Random(args.seed)
     names = [args.only] if args.only else list(VERIFIERS)
 
-    print("== Coverage and exact-count check (Section 10, items 7-8) ==")
+    print("== Coverage and exact-count check ==")
     all_problems = []
     for name in names:
         meta = VERIFIERS[name]
@@ -339,7 +338,7 @@ def main():
         all_problems += check_coverage(name, meta, path)
 
     if args.sample:
-        print(f"\n== Independent witness re-derivation (Section 10, item 7; {args.sample}/verifier) ==")
+        print(f"\n== Independent witness re-derivation ({args.sample}/verifier) ==")
         for name in names:
             all_problems += check_witnesses(name, VERIFIERS[name], args.sample, rng)
 
