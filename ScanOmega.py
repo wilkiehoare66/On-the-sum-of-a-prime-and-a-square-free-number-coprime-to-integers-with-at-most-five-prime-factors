@@ -17,9 +17,12 @@ W_n = prod_{p nmid n}(1 - 1/(p(p-1))):
 Peeled primes may be costed in either of two currencies:
 
   (W-currency)  via Theorem 4.4, cost  (1 - lambda_q) C_Artin + E_B(q,n).
-                Requires the bracket  beta(m) - sum_{q in W} (1 - lambda_q) >= 0,
+                Requires the bracket  beta(m) - sum_{q peeled} (1 - lambda_q) >= 0,
                 since only then does W_n >= C_Artin apply in the right direction.
-  (crude)       via the elementary bound (10) / Lemma 5.4, cost
+                The paper records this bracket in its strictest form, debiting
+                1 - lambda_q for EVERY peeled prime rather than only those
+                costed here; removing a prime from the sum can only increase it.
+  (crude)       via the elementary bound (8) / Lemma 5.2, cost
                     1/q + (q-1)/(840 log n)                for q <= 100,
                     1/(q-1) + 1/(160 log n)                for 100 < q <= 1e5,
                     0.00026                                for q > 1e5.
@@ -147,7 +150,7 @@ def cost_envelope(n):
     1/(160 log n) while the third is constant, so the third is the larger once
     n > e^25 ~ 7.2e10.  Only the domination above Q_ENV is used, and that holds
     for every n >= 8e9 with a factor of nearly four to spare.  This is the tail
-    step in the proof of Lemma 5.3.
+    step in the proof of Lemma 5.4.
 
     Returns (env, tail): env[q] = cost_bar(q) for primes q <= Q_ENV, and tail is
     the uniform bound for q > Q_ENV.  Where cost happens to be monotone the
