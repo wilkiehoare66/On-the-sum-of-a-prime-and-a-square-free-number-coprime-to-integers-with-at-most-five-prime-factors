@@ -52,7 +52,7 @@ then `R_K(n) <= R_k(n)`, so adjoining primes to `k` until it has five gives
 └── verification/
     ├── verify_odd.cpp          odd n, six pairwise-coprime witnesses
     ├── verify_even.cpp         even n, three distinct Goldbach splits
-    ├── verify_large_prime.cpp  optional independent cross-check
+    ├── verify_large_prime.cpp  optional cross-check (not run -- see below)
     ├── prime64.hpp             deterministic primality (shared)
     ├── verify_results.py       independent cross-verifier of the run
     ├── run_manifest.sh         build/run provenance
@@ -79,7 +79,7 @@ then `R_K(n) <= R_k(n)`, so adjoining primes to `k` until it has five gives
 | Table 3 (the `omega(k)=6` obstruction) | `CoverageTree.py` | `--omega 6` |
 | Table 1 (sharp thresholds) | `Threshold.py` | `--rmin 2 --rmax 6` |
 | Appendix A (certificate trail) | `CertifyCases.py`, `VerifyCertificate.py` | — |
-| Section 6 (finite range) | `verification/*.cpp`, `Threshold.py --certify` | — |
+| Section 6 (finite range) | `verify_odd.cpp`, `verify_even.cpp`, `Threshold.py --certify` | — |
 
 Lemma 5.5 has no script: it is a two-line monotonicity argument.
 
@@ -249,7 +249,12 @@ The witness and split counts appear in exactly one place each —
 `verify_results.py` carries copies that must be kept in step with them.
 
 `verify_large_prime.cpp` is an independent cross-check inherited from the
-first author's thesis. It is not cited by the paper and running it is optional.
+first author's thesis, and we did not run it. The six-witness and three-split
+arguments are uniform in `k` and between them already cover every `k` with
+`omega(k) <= 5`, so nothing in the paper rests on it; it is not cited there.
+Consequently `results/unconstrained_results.csv` is absent, and
+`verify_results.py` reports that verifier as SKIPPED rather than as a failure.
+Anyone wanting the cross-check can build and run it exactly as the other two.
 
 ## Citing this repository
 
