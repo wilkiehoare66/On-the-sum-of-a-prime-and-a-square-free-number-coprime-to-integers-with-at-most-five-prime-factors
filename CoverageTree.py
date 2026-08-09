@@ -6,17 +6,24 @@ Produces the finite case division that establishes R_k(n) > 0 for EVERY odd
 square-free k with omega(k) = r and (n,k) = 1, at a given n -- not merely for k
 built from small primes.
 
-THE MONOTONICITY THAT MAKES THIS FINITE
----------------------------------------
+THE ENVELOPE THAT MAKES THIS FINITE
+-----------------------------------
 Fix a base m = q_1...q_s (an initial segment of k's primes) and peel the rest.
 Each peeled prime q costs
 
-    min( (1 - lambda_q) C_Artin + E_B(q,n),   crude(q,n) ),
+    cost(q) = min( (1 - lambda_q) C_Artin + E_B(q,n),   crude(q,n) ),
 
-and both expressions are strictly decreasing in q.  Hence, at a fixed base, the
-margin is smallest when the peeled primes are as small as they are allowed to
-be, i.e. the primes immediately following q_s.  So a single evaluation at that
-worst completion certifies EVERY k sharing the prefix q_1...q_s.
+which is NOT decreasing in q: Remark 5.3 of the paper exhibits
+cost(97) = 0.0095116 below cost(101) = 0.0095721, the increase occurring where
+the cutoff c1 = floor(sqrt(M/q)) drops from 32 to 31.  Lemma 5.4 therefore
+replaces cost by the running supremum
+
+    cost_bar(q) = sup{ cost(q') : q' >= q prime },
+
+which is non-increasing and lies above cost.  Charging each peeled prime
+cost_bar at the successive primes from the threshold upwards bounds every
+admissible completion at once, so a single evaluation at that worst completion
+covers EVERY k sharing the prefix q_1...q_s.
 
 THE CASE TREE
 -------------
