@@ -37,7 +37,7 @@ LOG2_UPPER = Fraction(6931472, 10000000)        # > log 2
 
 # The case tree of Lemma 5.6, as (description, base primes, threshold T, worst
 # completion).  T is the least value the first peeled prime may take in that
-# case; by Lemma 5.3 the worst k of the case is the base followed by T and its
+# case; by Lemma 5.4 the worst k of the case is the base followed by T and its
 # successors, which is what makes one evaluation certify the whole branch.
 CASES = [
     ("q_1 >= 5",                             [],        5,  [5, 7, 11, 13, 17]),
