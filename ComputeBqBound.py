@@ -10,7 +10,7 @@ which is Theorem 4.4 of the paper.  B_q(n) is the weighted mass discarded
 when the coprimality condition is tightened by one further prime q, and it is
 the quantity subtracted for each peeled prime in the base-plus-peel criterion
 
-    R_m(n) > log 2 + sum_{l} B_{q_l}(n)          ==>  R_k(n) > 0.
+    R_m(n) > log 2 + sum_{l} B_{q_l}(n)          ==>  R_k(n) > log 2.
 
 That criterion is taken over the common Euler product W_n = prod_{p nmid n}
 (1 - 1/(p(p-1))) >= C_Artin, which is the sharp common factor: R_m/n and B_q/n
@@ -28,8 +28,9 @@ q^2 b^2 <= n^{2A} forces b <= n^A/q). Keeping them separate prevents the second
 family's large range from being undercounted. The short range carries a p=n
 endpoint term; the large range carries the bad-gcd (d,n)>1 / (b,n)>1 terms.
 
-Coupled comparison.  The comparison is taken over the common Euler product
-P_k(n) = prod_{p not| kn}(1-1/(p(p-1))) >= C_Artin, so the unrestricted side
+Coupled comparison.  The comparison is taken over the same W_n as above, not
+over prod_{p not| kn}: the paper records that normalising over the latter is the
+same algebra with a weaker constant.  The unrestricted side
 contributes its genuine explicit-estimate error E_R(n) (from R_k at k=1,
 including its bad-gcd term), not a flat lower bound.
 
@@ -143,7 +144,7 @@ def one_minus(p):
     return 1.0 - 1.0 / (p * (p - 1))
 
 
-R_UNRESTRICTED_LOWER = 0.32035   # Theorem 2.4 flat bound (crude Lemma 5.1-type checks only)
+R_UNRESTRICTED_LOWER = 0.32035   # Lee-O'Clarey Thm 3.3 flat bound (crude Lemma 5.1-type checks only)
 
 
 def Bq_error(q, n, ctx, A=None, c1=None, c2=None, Z1=None, Z2=None):
@@ -249,7 +250,7 @@ def R_lower(m, n, ctx):
 #     W_n = prod_{p nmid n} (1 - 1/(p(p-1))),
 # since  R_m/n ~ (prod_{q|m} lambda_q) W_n  and  B_q/n ~ (1 - lambda_q) W_n
 # (the identity (q-2)/(q-1) = lambda_q (1 - 1/(q(q-1))) converts the stated
-# forms of Prop 4.1 and Prop 4.3 into these).  The difference therefore carries
+# forms of Theorem 4.1 and Theorem 4.4 into these).  The difference therefore carries
 # W_n as a common factor, and W_n >= C_Artin is sharp (equality at n = 1).
 #
 # Writing the same difference over P_k(n) = prod_{p nmid kn} and using
