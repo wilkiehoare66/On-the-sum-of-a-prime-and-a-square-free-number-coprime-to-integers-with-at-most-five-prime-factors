@@ -15,7 +15,7 @@ WHAT IS RE-DERIVED HERE (not taken from the archive):
   * beta(base) = prod lambda_q over the base primes, compared against the
     archived exact value;
   * the main term beta * C_Artin_lower, recomputed;
-  * the bracket beta(base) - sum over Prop-4.3-costed primes of (1-lambda_q),
+  * the bracket beta(base) - sum over Theorem-4.4-costed primes of (1-lambda_q),
     which must be nonnegative for W_n >= C_Artin to be applied in the right
     direction;
   * each peel cost, checked to equal (1-lambda_q) C_Artin_lower + E_B for the
@@ -29,9 +29,9 @@ would just be a second copy of the same code.  Everything downstream of them
 is recomputed.
 
 Also checked: that the five cases form an exhaustive division of the odd
-square-free k with omega(k) = 5, and that each case's "worst k" really is the
+square-free k with omega(k) = 5, and that each case's "hardest k" really is the
 smallest completion of its base -- which is what Lemma 5.6 needs from
-Lemma 5.3 (the certified envelope).
+Lemma 5.4 (the non-increasing bound for the peel cost).
 
 Exit status is the verdict: 0 if every check passes, 1 otherwise.
 
@@ -103,7 +103,7 @@ def check_case(desc, rec, cart, log2u, eps, fails):
         if cost < floor - TOL:
             fails.append(f"{desc}: peel q={q} cost {cost} below its main part {floor}")
         # the envelope must be non-increasing along the (increasing) peel list,
-        # which is the property Lemma 5.3 supplies and cost(q) itself lacks
+        # which is the property Lemma 5.4 supplies and cost(q) itself lacks
         if prev is not None and cost > prev + TOL:
             fails.append(f"{desc}: peel costs not non-increasing at q={q} "
                          f"({prev} -> {cost}); the envelope is not an envelope")
@@ -125,7 +125,7 @@ def check_case(desc, rec, cart, log2u, eps, fails):
         fails.append(f"{desc}: NON-POSITIVE margin {margin}")
 
     # 6. the worst k really is the base followed by the case threshold T and
-    #    its successors.  This is what Lemma 5.3 (the certified envelope) needs: the peel
+    #    its successors.  This is what Lemma 5.4 (the non-increasing bound for the peel cost) needs: the peel
     #    cost decreases in q, so the smallest admissible completion is the
     #    hardest, and one evaluation then certifies the whole branch.
     T = rec["first_peel_threshold"]
@@ -135,7 +135,7 @@ def check_case(desc, rec, cart, log2u, eps, fails):
         tail.append(x)
     if base + tail != combo:
         fails.append(f"{desc}: worst k {combo} is not base + (T={T} and successors) "
-                     f"{base + tail} -- Lemma 5.3 does not transfer")
+                     f"{base + tail} -- Lemma 5.4 does not transfer")
 
     # 7. T must be consistent with the case description, and the base must be
     #    an initial segment of the worst k (the base is fixed across the branch).
