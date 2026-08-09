@@ -10,13 +10,23 @@ omega(k)):
 
   lambda_q = q(q-2)/(q^2-q-1),   and with c>=1, Z>c integers, A in (0,1/2):
 
-  (I)   = (1/log n) sum_{a<=c,(a,k)=1} mu^2(a) sum_{j|k} c_theta(j a^2)
-          [the j=a=1 modulus-1 term uses Broadbent: 0.375/(log n)^3]
-  (II)  = ( prod_{q|k} (q-2)/(q-1) + 2/(1-2A) )
-          ( sum_{c<a<=Z,(a,k)=1} mu^2(a)/phi(a^2) + 4/Z )
-  (III) = ( k n^{-2A} + sqrt(k) n^{-A} + n^{A-1}/sqrt(k) ) log n.
-          [the three pieces are the Sigma_4 tail (d > n^A/sqrt(k)) and the
-           bad-gcd range (d,n)>1 contributing n^{A-1}/sqrt(k); see Prop 4.1 proof]
+  (I)   = (1/n) sum_{d<=c,(d,k)=1} mu^2(d) sum_{e|k} E(n; e d^2, n)
+        + (log n / n) sum_{d<=c,(d,k)=1} mu^2(d) sum_{e|k} mu(e)
+          [the second summand is the p=n endpoint, which cancels for k>1 and
+           survives only at k=1; the e=d=1 term uses Broadbent: 0.375/(log n)^3]
+  (II)  = alpha_k ( sum_{c<d<=Z,(d,k)=1} mu^2(d)/phi(d^2) + 4/Z
+          + 2[ sum_{c<d<=Y,(d,k)=1} mu^2(d) w_0(d)/phi(d^2)
+             + (1/(1-2A))( sum_{Y<d<=Z,(d,k)=1} mu^2(d)/phi(d^2) + 4/Z ) ] ),
+          alpha_k = prod_{q|k} (q-2)/(q-1),  w_0(d) = log n / log(n/(k d^2)),
+          Y = floor(n^A / sqrt(k)).
+          [alpha_k multiplies the WHOLE bracket, and w_0 is kept inside the sum:
+           these are the two sharpenings.  Discarding coprimality would replace
+           alpha_k by alpha_k + 2/(1-2A); see Remark 4.2]
+  (III) = ( k n^{-2A} + sqrt(k) n^{-A} ) log n
+        + ( n^{A-1}/sqrt(k) ) ( log n + log k ).
+          [the Sigma_4 tail (d > n^A/sqrt(k)) and the bad-gcd range (d,n)>1;
+           the log k is the price of retaining coprimality.  See the proof of
+           Theorem 4.1]
 
 c_theta(m) is the SHARP per-modulus error bound for theta(n;m,a): for each modulus
 the smallest available of
@@ -25,7 +35,7 @@ the smallest available of
   - the Ramare-Rumely Table 2 sqrt-bound (rr_theta_table2.tsv; valid for n <= 1e10),
   - the Bennett envelope  1/840 (m<=1e4), 1/160 (m<=1e5)   [fallback of last resort].
 Using the raw tables, not the envelope, is what yields the constants in the paper
-(e.g. R_15 > 0.09527 n, not 0.088 n). The modulus-1 term uses Broadbent et al.,
+(e.g. R_15 > 0.14988 n, rather than the weaker constant the envelope gives). The modulus-1 term uses Broadbent et al.,
 |theta(n) - n| <= 0.375 n / (log n)^3.
 
 DATA FILES (REQUIRED).  Four tables are read from this script's own directory:
@@ -498,7 +508,7 @@ def evaluate(n, k, c, mu, phi, bennett, rr_table1, rr_table2, tail, alpha, beta,
     z_required = n ** A_star / math.sqrt(k)
     if z_required > Z:
         raise AssertionError(
-            f"Prop 4.1 hypothesis violated for k={k}, n={n:.3e}: need Z >= "
+            f"Theorem 4.1 hypothesis violated for k={k}, n={n:.3e}: need Z >= "
             f"n^A/sqrt(k) = {z_required:.3e} but Z = {Z}. Increase Z (MAX_TABLE_MOD).")
     return {
         "bound": beta * C_ARTIN - err,
