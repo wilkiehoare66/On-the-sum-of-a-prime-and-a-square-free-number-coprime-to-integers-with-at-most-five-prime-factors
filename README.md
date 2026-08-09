@@ -1,6 +1,7 @@
 # On the sum of a prime and a square-free number coprime to integers with at most five prime factors
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21834718.svg)](https://doi.org/10.5281/zenodo.21813035)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21813035.svg)](https://doi.org/10.5281/zenodo.21813035)
 
 Code for the verifications required in the paper *"On the sum of a prime and a
 square-free number coprime to integers with at most five prime factors"* by
@@ -37,12 +38,12 @@ then `R_K(n) <= R_k(n)`, so adjoining primes to `k` until it has five gives
 .
 ├── ComputeRkBound.py          Theorem 4.1      (SHARPEN toggle)
 ├── ComputeBqBound.py          Theorem 4.4      (SHARPEN_B toggle)
-├── ScanOmega.py               base-plus-peel criterion (11) for a single k
+├── ScanOmega.py               base-plus-peel criterion (12) for a single k
 ├── CoverageTree.py            derives the case division of Lemma 5.6
 ├── CertifyCases.py            directed-rounding certificate  -> case_certificates.json
 ├── VerifyCertificate.py       independent re-check of that archive
 ├── Threshold.py               exact sharp thresholds; certifies 108 <= n <= 1e4
-├── verify_R_classes.py        residue-class structure behind Theorem 4.1(b)
+├── verify_R_classes.py        residue-class structure behind the retained coprimality
 ├── case_certificates.json     the certificate archive (generated)
 ├── bennett_c_theta.tsv        \
 ├── bennett_x0.tsv              |  imported prime-counting data
@@ -72,9 +73,9 @@ then `R_K(n) <= R_k(n)`, so adjoining primes to `k` until it has five gives
 | Theorem 4.1 | `ComputeRkBound.py` | `--k K` |
 | Corollary 4.3 (five constants) | `ComputeRkBound.py` | `--k 1,3,15,21,105` |
 | Theorem 4.4 | `ComputeBqBound.py` | `--bq Q` |
-| Remark 5.2 (`cost` not monotone) | `ScanOmega.py` | `cost_bar`, `crude_cost` |
-| Lemma 5.3 (certified envelope) | `ScanOmega.py` | `cost_envelope` |
-| Equation (10) (`crude`) | `ScanOmega.py` | `crude_cost` |
+| Remark 5.3 (`cost` not monotone) | `ScanOmega.py` | `cost_bar`, `crude_cost` |
+| Lemma 5.4 (non-increasing bound for the peel cost) | `ScanOmega.py` | `cost_envelope` |
+| Equation (8) (`crude`) | `ScanOmega.py` | `crude_cost` |
 | Lemma 5.6 + Table 2 | `CoverageTree.py` | `--omega 5` |
 | Table 3 (the `omega(k)=6` obstruction) | `CoverageTree.py` | `--omega 6` |
 | Table 1 (sharp thresholds) | `Threshold.py` | `--rmin 2 --rmax 6` |
@@ -186,11 +187,10 @@ outright. The certificates record `Y` alongside `Z` so that the hypothesis
 
 ## Reproducing the finite verification
 
-The range splits at `1e4`, and this is a mathematical split, not an
-optimisation. The C++ device certifies `n` by exhibiting six *pairwise coprime*
+The range splits at `1e4`. The C++ device certifies `n` by exhibiting six *pairwise coprime*
 witnesses, which is sufficient but not necessary. At `n = 167` no such six exist
-even though `n = 167` is good for every `omega(k) <= 5` — the least covering set
-of the witness supports has six elements while the largest pairwise coprime
+even though `n = 167` is good for every `omega(k) <= 5` — the least hitting set for
+the witness supports has six elements while the largest pairwise coprime
 subfamily has five. So:
 
 ```
