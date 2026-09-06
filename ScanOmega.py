@@ -24,9 +24,11 @@ Peeled primes may be costed in either of two currencies:
                 costed here; removing a prime from the sum can only increase it.
   (crude)       via the elementary bound (8) / Lemma 5.2, cost
                     1/q + (q-1)/(840 log n)                for q <= 100,
-                    1/(q-1) + 1/(160 log n)                for 100 < q <= 1e5,
+                    max(1/(q-1) + 1/(160 log n), 0.00026)  for 100 < q <= 1e5,
                     0.00026                                for q > 1e5.
-                Absolute, so it carries no bracket constraint.
+                Absolute, so it carries no bracket constraint.  The maximum in
+                the middle case only enlarges an upper bound and is what makes
+                crude non-increasing across all three cases; see crude_cost.
 
 Both costs are absolute (in units of n), so each peeled prime independently takes
 the cheaper of the two, and
@@ -110,12 +112,23 @@ def E_R(m, n):
 
 
 def crude_cost(q, n):
-    """The elementary upper bound for B_q(n)/n: equation (10) and Lemma 5.4."""
+    """The elementary upper bound for B_q(n)/n: equation (8) and Lemma 5.2.
+
+    The maximum in the middle case is what makes crude NON-INCREASING across
+    all three cases, which is what the tail step of Lemma 5.4 needs.  Without
+    it the middle case drops below the constant 0.00026 of the third for q near
+    MAXMOD once n > e^25 ~ 7.2e10 (at log n = 30 and q just under 1e5 it reads
+    2.18e-4 against 2.60e-4), and sup{cost(q') : q' >= q} would then exceed
+    crude(q, n) there.  Taking the maximum only enlarges an upper bound, so it
+    costs nothing, and it is inert at both certified reference points, where
+    1/(160 log n) alone is 2.741e-4 (n = 8e9) and 2.714e-4 (n = 1e10), both
+    above 0.00026.  No certified value changes.
+    """
     logn = math.log(n)
     if q <= 100:
         return 1.0 / q + (q - 1.0) / (840.0 * logn)
     if q <= MAXMOD:
-        return 1.0 / (q - 1.0) + 1.0 / (160.0 * logn)
+        return max(1.0 / (q - 1.0) + 1.0 / (160.0 * logn), 0.00026)
     return 0.00026
 
 
@@ -141,16 +154,16 @@ def cost_envelope(n):
     assumption whatever.  It is computable because cost(q) is evaluated exactly
     for the finitely many primes q <= Q_ENV, while for q > Q_ENV we use
     cost(q) <= crude(q) together with crude(q) <= crude(Q_ENV^+) for every
-    prime q > Q_ENV: the second case of (10) is decreasing in q, and the third
-    is the constant 0.00026 < 1/1008 <= crude(1009).  So the supremum over that
-    tail is bounded by crude at the first prime above Q_ENV.
+    prime q > Q_ENV: the second case of (8) is non-increasing in q, and the
+    third is the constant 0.00026 < 1/1008 <= crude(1009).  So the supremum
+    over that tail is bounded by crude at the first prime above Q_ENV.
 
-    Note that crude is NOT globally non-increasing, and the argument does not
-    claim it is: at the junction q = M the second case of (10) decays like
-    1/(160 log n) while the third is constant, so the third is the larger once
-    n > e^25 ~ 7.2e10.  Only the domination above Q_ENV is used, and that holds
-    for every n >= 8e9 with a factor of nearly four to spare.  This is the tail
-    step in the proof of Lemma 5.4.
+    With the maximum built into the second case of (8), crude is non-increasing
+    across all three cases, so more is true, and cost_bar uses it below: for any
+    q > Q_ENV and any prime q' >= q, cost(q') <= crude(q') <= crude(q), hence
+    cost_bar(q) <= crude(q, n) itself.  That is the third clause of Lemma 5.4,
+    and the maximum is exactly what makes it hold for every n >= 8e9 rather than
+    only for n <= e^25.
 
     Returns (env, tail): env[q] = cost_bar(q) for primes q <= Q_ENV, and tail is
     the uniform bound for q > Q_ENV.  Where cost happens to be monotone the
@@ -176,6 +189,12 @@ def cost_envelope(n):
 
 
 def cost_bar(q, n):
+    """cost_bar(q) = sup{cost(q') : q' >= q prime}, majorised as in Lemma 5.4.
+
+    For q > Q_ENV both majorants are valid: the uniform tail value, and
+    crude(q, n) itself since crude is non-increasing.  The latter is the third
+    clause of Lemma 5.4 and rests on the maximum taken in crude_cost.
+    """
     env, tail = cost_envelope(n)
     return env[q] if q <= Q_ENV else min(tail, crude_cost(q, n))
 
