@@ -3,26 +3,26 @@
 //
 // Finite verification, for odd n in [RANGE_START, RANGE_END], that every odd n
 // in range admits NUM_WITNESSES square-free summands ell with n - ell prime and with
-// pairwise disjoint odd prime supports. Four such witnesses are pairwise
-// coprime in their odd parts, so at most three can be divided by the prime
-// factors of a modulus k with omega(k) <= 3, leaving at least one summand
-// n - ell coprime to k -- i.e. a representation n = p + s with s square-free
-// and coprime to k. (For odd n and odd k the common factor 2 is irrelevant,
-// so only the odd prime supports need be disjoint.)
+// pairwise disjoint odd prime supports. Six such witnesses are pairwise
+// coprime in their odd parts, so at most five can be divided by the prime
+// factors of an odd k with omega(k) <= 5, leaving at least one witness ell
+// coprime to k -- i.e. a representation n = p + ell with p = n - ell an odd
+// prime and ell square-free and coprime to k. (For odd n and odd k the common
+// factor 2 is irrelevant, so only the odd prime supports need be disjoint.)
 //
 // Method. Two tiers, both certifying the same object -- square-free summands
 // with n - ell prime and pairwise disjoint odd supports:
 //
 //   Fast path.  ell = 2r for an odd prime r is automatically square-free with
-//   singleton odd support {r}. Four distinct such r for which n - 2r is prime
-//   are, by construction, NUM_WITNESSES pairwise-disjoint witnesses, so no
+//   singleton odd support {r}. NUM_WITNESSES distinct such r for which n - 2r
+//   is prime are, by construction, pairwise-disjoint witnesses, so no
 //   factorisation is needed. Primality of the n - 2r candidates is answered
 //   from a segmented composite/prime bitmap built once per batch of chunks
 //   (extended below the batch start by the largest pool witness), so each
 //   query is a single array read.
 //
 //   Fallback.  For any odd n the fast path does not clear, an exhaustive
-//   search over primes pr < n forms ell = n - pr, tests square-freeness
+//   search over primes 2 < pr < n forms ell = n - pr, tests square-freeness
 //   completely (trial division to B > NMAX^(1/3) followed by a residual
 //   perfect-square check), encodes the odd support canonically, and greedily
 //   collects NUM_WITNESSES pairwise-disjoint witnesses. This tier uses the
@@ -82,12 +82,14 @@ const i64 CHUNK_SIZE  = 1000000LL;       // 10^6
 const string RESULTS_FILE    = "results/odd_results.csv";
 const string CHECKPOINT_FILE = "results/odd_checkpoint.csv";
 
-const int NUM_THREADS = 6;
+// Threads: OpenMP's count, i.e. OMP_NUM_THREADS if set, otherwise every
+// logical CPU. Set at the top of main(); the results do not depend on it.
+int NUM_THREADS = 1;
 
 // Certified range for the square-free test / witness search.
 constexpr i64 NMAX = 2'000'000'000'000LL;                // 2e12, must be >= RANGE_END
 // NUM_WITNESSES pairwise-coprime square-free witnesses dodge every k with
-// omega(k) <= NUM_WITNESSES - 1.  Six is what Theorem 1.3 (omega(k) <= 5)
+// omega(k) <= NUM_WITNESSES - 1.  Six is what Lemma 3.2 (omega(k) <= 5)
 // requires.  This is the ONLY place the count appears -- change it here and
 // nowhere else, and keep verify_results.py's copy in step with it.
 constexpr int NUM_WITNESSES = 6;
@@ -283,6 +285,7 @@ bool check_witnesses(i64 w) {
     reps.reserve(NUM_WITNESSES);
 
     for (i64 pr : FALLBACK_PRIMES) {
+        if (pr == 2) continue;   // Lemma 3.2 asks for 2 < p < n
         if (pr >= w) break;
         i64 ell = w - pr;
         if (ell <= 0 || ell > NMAX) continue;
@@ -305,9 +308,9 @@ bool check_witnesses(i64 w) {
 // Fast path
 //
 // ell = 2r for odd prime r is automatically square-free with singleton odd
-// support {r}. Four distinct r for which w - 2r is prime are therefore, by
-// construction, four pairwise-disjoint witnesses -- no factorisation of
-// w - 2r is needed at all.
+// support {r}. NUM_WITNESSES distinct r for which w - 2r is prime are
+// therefore, by construction, pairwise-disjoint witnesses -- no factorisation
+// of w - 2r is needed at all. Each w - 2r is odd, so the prime is never 2.
 // ============================================================================
 
 vector<i64> WITNESS_POOL;   // {2r : r odd prime <= POOL_PMAX}, ascending
@@ -551,6 +554,7 @@ struct ChunkResult {
     i64 chunk_end;
     vector<i64> exceptions;
     i64 checked_count = 0;
+    i64 fallback_count = 0;
     double elapsed_seconds = 0;
 };
 
@@ -568,6 +572,7 @@ ChunkResult verify_chunk(i64 from_me, i64 to_me, const SieveWindow& sw) {
         result.checked_count++;
 
         if (!fast_witnesses_sieved(w, sw)) {
+            result.fallback_count++;
             if (!check_witnesses(w)) {
                 result.exceptions.push_back(w);
             }
@@ -612,7 +617,8 @@ void write_result(ofstream& results_file, const ChunkResult& result) {
         }
     }
     results_file << "," << result.checked_count << ","
-                 << fixed << setprecision(2) << result.elapsed_seconds << endl;
+                 << fixed << setprecision(2) << result.elapsed_seconds
+                 << "," << result.fallback_count << endl;
     results_file.flush();
 }
 
@@ -634,6 +640,7 @@ i64 read_checkpoint() {
 // ============================================================================
 
 int main(int argc, char* argv[]) {
+    NUM_THREADS = omp_get_max_threads();
     mkdir("results", 0755);   // no-op if it already exists
     static_assert(SQFREE_TRIAL_BOUND > 0, "sanity");
     if ((__int128)SQFREE_TRIAL_BOUND * SQFREE_TRIAL_BOUND * SQFREE_TRIAL_BOUND <= NMAX) {
@@ -694,6 +701,7 @@ int main(int argc, char* argv[]) {
         auto chunk_result = verify_chunk(RANGE_START, RANGE_START + CHUNK_SIZE - 1, sw);
         cout << "Time: " << chunk_result.elapsed_seconds << "s" << endl;
         cout << "Odd integers checked: " << chunk_result.checked_count << endl;
+        cout << "Reached the fallback: " << chunk_result.fallback_count << endl;
         cout << "Exceptions: ";
         if (chunk_result.exceptions.empty()) cout << "none" << endl;
         else { for (i64 e : chunk_result.exceptions) cout << e << " "; cout << endl; }
@@ -728,7 +736,7 @@ int main(int argc, char* argv[]) {
         results_file.open(RESULTS_FILE, ios::app);
     } else {
         results_file.open(RESULTS_FILE);
-        results_file << "timestamp,chunk_start,chunk_end,status,exceptions,checked_count,elapsed_seconds" << endl;
+        results_file << "timestamp,chunk_start,chunk_end,status,exceptions,checked_count,elapsed_seconds,fallback_count" << endl;
     }
 
     omp_set_num_threads(NUM_THREADS);
