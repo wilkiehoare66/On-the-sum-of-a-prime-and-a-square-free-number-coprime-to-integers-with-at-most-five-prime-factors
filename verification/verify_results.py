@@ -3,7 +3,7 @@
 verify_results.py
 =================
 Independent cross-verifier for the exhaustive finite computation. It reads the per-chunk CSV
-output of the three C++ verifiers and checks, WITHOUT importing or trusting any
+output of the two C++ verifiers and checks, WITHOUT importing or trusting any
 of their code:
 
   1. CHUNK COVERAGE: the recorded chunks tile each verifier's range
@@ -15,11 +15,13 @@ of their code:
      not assumed.
   3. WITNESS RE-DERIVATION: for a random sample of n in each range,
      this script INDEPENDENTLY finds a valid witness of the same kind the
-     corresponding verifier claims to have found -- a prime p = n - s with s
-     square-free (large-prime), or the six disjoint-support square-free
-     witnesses (odd), or NUM_SPLITS distinct Goldbach splits (even) -- using its own
+     corresponding verifier claims to have found -- the six disjoint-support
+     square-free witnesses with n - s an odd prime (odd), or NUM_SPLITS
+     distinct Goldbach splits (even) -- using its own
      primality and square-free routines below. This re-checks primality,
      square-freeness and support-disjointness on real data, independently.
+  4. FALLBACK COUNT: totals the last column of odd_results.csv, the number of
+     odd n that the fast path did not clear and the exhaustive search had to.
 
 Primality here is deterministic Miller-Rabin with the twelve Sorenson-Webster
 bases (unconditional below 318665857834031151167461 ~ 3.19e23), matching the
@@ -27,7 +29,7 @@ verifiers' backend of record
 -- but implemented separately, so agreement is a genuine cross-check.
 
 Usage:
-    python3 verify_results.py                 # coverage + count, all three files
+    python3 verify_results.py                 # coverage + count, both files
     python3 verify_results.py --sample 200    # also re-derive witnesses for 200 random n each
     python3 verify_results.py --results-dir results
 Exit status is nonzero if any check fails.
@@ -48,15 +50,6 @@ VERIFIERS = {
              "chunk": 1000000, "stride": 2, "kind": "witness"},
     "even": {"csv": "even_results.csv", "start": 10002, "end": 2000000000000,
              "chunk": 10000000, "stride": 2, "kind": "split"},
-    # OPTIONAL, and not load-bearing for the manuscript: the six-witness and
-    # three-split arguments are uniform in k, so odd+even already cover every k
-    # with omega(k) <= 5.  This is an independent cross-check of the
-    # unconstrained statement (Theorem 1.1) over the same range, produced by
-    # verify_large_prime.cpp.  If that was not run, its absence is reported as
-    # SKIPPED rather than as a failure.
-    "unconstrained": {"csv": "unconstrained_results.csv", "start": 4810000000,
-                      "end": 2000000000000, "chunk": 10000000, "stride": 1,
-                      "kind": "prime_plus_sqfree", "optional": True},
 }
 
 SMALL_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37]
@@ -147,14 +140,6 @@ NUM_SPLITS = 3         # must equal verify_even.cpp's NUM_SPLITS
 
 
 # --- independent witness re-derivation, per kind ----------------------------
-def find_prime_plus_sqfree(n):
-    """Some prime p<n with n-p square-free (unconstrained cross-check)."""
-    for p in _primes_desc(n):
-        if is_squarefree(n - p):
-            return ("p=%d, s=%d" % (p, n - p))
-    return None
-
-
 def find_splits(n):
     """NUM_SPLITS distinct Goldbach splits of an even n."""
     found = []
@@ -186,8 +171,11 @@ def find_witnesses(n):
                 supports.append(sup)
                 if len(wits) == NUM_WITNESSES:
                     return "; ".join(wits)
-    # fallback: general square-free s with disjoint support
+    # fallback: general square-free s with disjoint support; p = 2 is skipped
+    # because Lemma 3.2 asks for a prime 2 < p < n
     for p in _primes_asc(n):
+        if p == 2:
+            continue
         s = n - p
         if s < 2:
             continue
@@ -209,14 +197,6 @@ def _primes_asc(limit):
         p += 1
 
 
-def _primes_desc(n):
-    p = n - 1
-    while p >= 2:
-        if is_prime(p):
-            yield p
-        p -= 1
-
-
 # --- CSV coverage + count ---------------------------------------------------
 def check_coverage(name, meta, path):
     problems = []
@@ -226,6 +206,7 @@ def check_coverage(name, meta, path):
             return []
         return [f"{name}: results file {path} not found"]
     rows = []
+    fallback_total, fallback_rows = 0, 0
     with open(path, newline="") as fh:
         for line in csv.reader(fh):
             if not line or line[0].strip().lower() in ("timestamp", "time"):
@@ -238,6 +219,11 @@ def check_coverage(name, meta, path):
                 problems.append(f"{name}: unparseable row: {line[:4]}")
                 continue
             rows.append((start, end, status))
+            # column 8 of odd_results.csv: values that reached the fallback
+            if (meta["kind"] == "witness" and len(line) >= 8
+                    and line[7].strip().isdigit()):
+                fallback_total += int(line[7])
+                fallback_rows += 1
 
     if not rows:
         return [f"{name}: no data rows in {path}"]
@@ -279,6 +265,9 @@ def check_coverage(name, meta, path):
               f"{covered:,} {note} covered "
               f"[{meta['start']:,} .. {last_end:,}]"
               + ("" if last_end >= meta["end"] else "  (INCOMPLETE)"))
+    if fallback_rows:
+        print(f"  {name}: {fallback_total:,} values reached the fallback search "
+              f"(over {fallback_rows:,} chunks)")
     return problems
 
 
@@ -294,8 +283,7 @@ def _count_integers(a, b, stride):
 
 def check_witnesses(name, meta, n_samples, rng):
     """Re-derive a witness independently for n_samples random n in range."""
-    finder = {"prime_plus_sqfree": find_prime_plus_sqfree,
-              "split": find_splits,
+    finder = {"split": find_splits,
               "witness": find_witnesses}[meta["kind"]]
     problems = []
     lo, hi = meta["start"], meta["end"]
