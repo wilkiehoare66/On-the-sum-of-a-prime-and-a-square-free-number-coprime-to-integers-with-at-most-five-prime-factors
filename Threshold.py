@@ -16,8 +16,8 @@ the question directly.
 
 THE EXACT CRITERION.  Put
     W(n) = { n - p : p < n prime, mu^2(n-p) = 1 },
-and for w in W(n) let supp(w) be the set of ODD primes dividing w.  A modulus k
-defeats n precisely when every w in W(n) shares a prime factor with k, i.e. when
+and for w in W(n) let supp(w) be the set of ODD primes dividing w.  A fixed
+integer k defeats n precisely when every w in W(n) shares a prime factor with k, i.e. when
 the odd prime factors of k form a HITTING SET for the family { supp(w) }.  Hence
 
     n is good for every odd k with omega(k) <= r    <=>    tau(n) > r,
@@ -30,6 +30,12 @@ is W_odd(n) = { w in W(n) : w odd } and, omega(k) <= r allowing omega(m) <= r-1,
 the criterion is tau_odd(n) > r-1.  For odd n the even-k case is the genuine
 parity obstruction and is excluded from the theorem.
 
+WHAT --certify CHECKS.  Lemma 3.2 of the paper asks, for odd square-free k with
+omega(k) <= 5 and every 108 <= n <= 1e4 of either parity, for a prime 2 < p < n
+with n - p square-free and coprime to k.  So --certify uses the subfamily with
+p >= 3 and odd k only; even k reaches the theorem through Lemma 3.1.  The
+threshold mode keeps p = 2, since Theorem 1.1 itself allows it.
+
 EARLY EXIT.  Hitting-set size is monotone under adding constraints: if some
 SUBFAMILY already needs more than r primes, so does the whole family.  Witnesses
 are therefore generated in increasing order of w -- smallest first, hence fewest
@@ -37,7 +43,8 @@ prime factors, hence most constraining -- and the search stops as soon as the
 partial family forces tau > r.  Only genuinely failing n are examined in full.
 
 Usage:
-    python3 Threshold.py --rmax 6 --nmax 20000
+    python3 Threshold.py --rmin 2 --rmax 5 --nmax 3000    # the thresholds
+    python3 Threshold.py --rmax 5 --certify 108 10000     # Lemma 3.2 below 1e4
 """
 import argparse
 
@@ -95,15 +102,16 @@ def min_hitting_set(fam, cap):
     return best[0]
 
 
-def family(n, spf, isp, odd_only):
+def family(n, spf, isp, odd_only, pmin=2):
     """Odd-prime supports of the square-free witnesses, smallest witness first.
+    Only primes p >= pmin are admitted (pmin = 3 excludes p = 2).
     Returns None if some witness has empty support (n then defeats every k)."""
     fam = []
     for w in range(1, n - 1):
         if odd_only and w % 2 == 0:
             continue
         p = n - w
-        if p < 2 or not isp[p]:
+        if p < pmin or not isp[p]:
             continue
         s = odd_support(w, spf)
         if s is None:
@@ -116,8 +124,8 @@ def family(n, spf, isp, odd_only):
     return fam
 
 
-def tau(n, r, spf, isp, odd_only):
-    fam = family(n, spf, isp, odd_only)
+def tau(n, r, spf, isp, odd_only, pmin=2):
+    fam = family(n, spf, isp, odd_only, pmin)
     return r + 1 if fam is None else min_hitting_set(fam, r)
 
 
@@ -152,7 +160,8 @@ def main():
     ap.add_argument("--rmax", type=int, default=6)
     ap.add_argument("--nmax", type=int, default=20000)
     ap.add_argument("--certify", nargs=2, type=int, metavar=("LO", "HI"),
-                    help="certify every n in [LO,HI] for omega(k) <= rmax")
+                    help="check Lemma 3.2 (odd k, primes 2 < p < n) for every "
+                         "n in [LO,HI] and omega(k) <= rmax")
     args = ap.parse_args()
 
     if args.certify:
@@ -160,19 +169,16 @@ def main():
         spf, isp = sieve(hi + 2)
         bad = []
         for n in range(lo, hi + 1):
-            if n % 2:
-                ok = tau(n, r, spf, isp, False) > r
-            else:
-                ok = (tau(n, r, spf, isp, False) > r
-                      and tau(n, r - 1, spf, isp, True) > r - 1)
-            if not ok:
+            # Lemma 3.2: odd square-free k, either parity of n, prime 2 < p < n.
+            # Even k is not checked here: the paper reaches it via Lemma 3.1.
+            if not tau(n, r, spf, isp, False, pmin=3) > r:
                 bad.append(n)
         print(f"exact criterion, omega(k) <= {r}, every n in [{lo}, {hi}]:")
         if bad:
             print(f"  FAILURES ({len(bad)}): {bad}")
         else:
             print(f"  ALL {hi - lo + 1} VALUES CERTIFIED "
-                  f"(odd n: every odd k; even n: also every even k = 2m)")
+                  f"(every odd k, both parities of n, primes 2 < p < n only)")
         raise SystemExit(1 if bad else 0)
 
     spf, isp = sieve(args.nmax + 2)
