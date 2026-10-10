@@ -2,8 +2,7 @@
 #
 # run_manifest.sh
 # ===============
-# Emit the provenance manifest that Section 10 (items 1-3) requires the
-# exhaustive run to be archived with:
+# Emit the provenance manifest that the exhaustive run is archived with:
 #
 #   1. the tagged commit / release the binaries were built from;
 #   2. compiler, version, flags, operating system and architecture;
@@ -75,14 +74,14 @@ command -v sha256sum >/dev/null 2>&1 || SUM="shasum -a 256"   # macOS fallback
 
   echo
   echo "-- [3a] Source + header checksums --"
-  for f in verify_odd.cpp verify_even.cpp verify_large_prime.cpp prime64.hpp verify_results.py; do
+  for f in verify_odd.cpp verify_even.cpp prime64.hpp verify_results.py; do
     [[ -f "$f" ]] && $SUM "$f" || echo "MISSING  $f"
   done
 
   echo
   echo "-- [3b] Executable checksums --"
   found_exe=0
-  for f in verify_odd verify_even verify_large_prime; do
+  for f in verify_odd verify_even; do
     if [[ -f "$f" ]]; then $SUM "$f"; found_exe=1; fi
   done
   [[ $found_exe -eq 0 ]] && echo "(no executables present -- run this again after building)"
@@ -96,8 +95,8 @@ command -v sha256sum >/dev/null 2>&1 || SUM="shasum -a 256"   # macOS fallback
   else
     for f in "${outs[@]}"; do
       lines=$(wc -l < "$f")
-      ok=$(grep -c ',OK,' "$f" 2>/dev/null || echo 0)
-      exc=$(grep -Ec ',EXCEPTION(S)?,' "$f" 2>/dev/null || echo 0)
+      ok=$(grep -c ',OK,' "$f" 2>/dev/null || true)
+      exc=$(grep -Ec ',EXCEPTION(S)?,' "$f" 2>/dev/null || true)
       printf '%s\n' "$($SUM "$f")"
       printf '    rows=%s  OK=%s  exceptions=%s\n' "$lines" "$ok" "$exc"
     done
