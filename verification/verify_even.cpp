@@ -1,34 +1,34 @@
 // ============================================================================
 // verify_even.cpp
 //
-// Finite verification, for even n in (RANGE_START, RANGE_END], of the even
-// branch of the finite computation: every even n in range admits two DISTINCT
-// Goldbach splits n = p1 + P1 = p2 + P2. The four primes p1,P1,p2,P2 are
-// distinct, hence pairwise coprime, so a prime factor of a modulus k with
-// omega(k) <= 3 divides at most one of them; at least one of the four, say P,
-// is therefore coprime to k. Then the summand s = P is prime (so square-free)
-// with (s,k) = 1, and n = (n-P) + P is the required representation.
+// Finite verification, for even n in [RANGE_START, RANGE_END], that every
+// even n in range admits NUM_SPLITS = 3 DISTINCT Goldbach splits
+// n = p1 + P1 = p2 + P2 = p3 + P3. A shared prime would make two splits
+// coincide, so the six primes are distinct, hence pairwise coprime, and a
+// prime factor of an odd k with omega(k) <= 5 divides at most one of them; at
+// least one of the six, say P, is therefore coprime to k. Then the summand
+// s = P is prime (so square-free) with (s,k) = 1, and n = (n-P) + P is the
+// required representation.
 //
-// This covers EVEN k as well as odd. When k = 2m is even, the chosen P is
-// coprime to k, hence in particular odd (2 | k), so the summand is odd and the
-// degenerate case P = 2 -- which would make s even, not coprime to k -- cannot
-// be the one selected. We do NOT rely on "both primes in a split are odd":
-// that is false in general (n - 2 may be prime), and is not needed. The
-// exclusion of p = 2 comes from the coprimality selection, not from parity of
-// the split.
+// No split uses the prime 2: n - 2 is even and exceeds 2, so it is not prime.
+// Every split prime is therefore odd, and in particular p = n - P > 2, which
+// is what Lemma 3.2 of the paper asks for. (For an even k = 2m with
+// omega(k) <= 5 the same six primes also work directly: being odd, none is
+// divisible by 2, and the at most four odd prime factors of m divide at most
+// four of them.)
 //
 // The search proceeds in three tiers of increasing cost, all of which count
 // the SAME object -- distinct-prime Goldbach splits -- so no square-free test
 // is needed anywhere:
 //
 //   1. Quick sieve: count splits n = sp + q with sp a small prime (< 500) and
-//      q obtained from a segmented sieve of the chunk. Two hits clear n.
-//   2. Intermediate fallback: for numbers with fewer than two small-prime
+//      q obtained from a segmented sieve of the chunk. NUM_SPLITS hits clear n.
+//   2. Intermediate fallback: for numbers with fewer than NUM_SPLITS such
 //      splits, count splits n = q + (n-q) over all pre-sieved primes q.
 //   3. Exhaustive fallback: for the few numbers still unresolved, test
 //      n = q + (n-q) directly with the deterministic primality routine until
-//      two distinct splits are found. A number reaching this tier and still
-//      failing is recorded as a genuine exception.
+//      NUM_SPLITS distinct splits are found. A number reaching this tier and
+//      still failing is recorded as a genuine exception.
 //
 // Primality backend, selected at compile time:
 //
@@ -228,7 +228,7 @@ vector<i64> distinct_splits(i64 n) {
 struct ChunkResult {
     i64 chunk_start;
     i64 chunk_end;
-    vector<i64> true_exceptions;                  // even n with fewer than two distinct splits
+    vector<i64> true_exceptions;                  // even n with fewer than NUM_SPLITS distinct splits
     vector<pair<i64, vector<i64>>> deep_checks;   // n resolved only by the exhaustive tier (n, split primes)
     i64 quick_exception_count;                    // count flagged by the quick filter
     i64 checked_count;
@@ -330,8 +330,8 @@ void init_results_file() {
     }
 }
 
-// Diagnostic log of numbers that needed the exhaustive tier, with the two
-// distinct split primes that cleared each (not required for the proof, but
+// Diagnostic log of numbers that needed the exhaustive tier, with the
+// NUM_SPLITS split primes that cleared each (not required for the proof, but
 // useful for auditing which inputs stressed the fast tiers).
 const string DEEP_CHECKS_FILE = "results/even_deep_checks.csv";
 
