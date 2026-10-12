@@ -55,3 +55,93 @@ ec50e64072a84e5bfd9c80471657764ba5d956459b00862ecef90d83e10c5b6c  verify_results
 NOTE: run  python3 verify_results.py --sample 500  to cross-check coverage,
       exact count, and re-derived witnesses independently of the C++ code.
 
+================================================================
+RUN MANIFEST  (2026-10-12T06:57:18Z UTC)
+================================================================
+
+-- [1] Source revision --
+commit:      16b67d1424f66e239bb57d0885be8dea04418a9d
+tag/describe: v1.1-51-g16b67d1-dirty
+branch:      main
+WORKING TREE: DIRTY  <-- commit/stash before an archival run
+
+-- [2] Toolchain, OS, architecture --
+os/kernel:   Linux 6.18.33.2-microsoft-standard-WSL2 x86_64 GNU/Linux
+hostname:    WilksOMEN
+cpu:         12th Gen Intel(R) Core(TM) i7-12700K
+cores/threads: 6 logical
+OMP_NUM_THREADS: 6
+
+compiler:    g++
+version:     g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+build flags: -O3 -fopenmp -std=c++17
+backend of record: default (deterministic Miller-Rabin, 12 Sorenson-Webster bases; unconditional).
+                   -DUSE_BPSW builds are conjectural cross-checks, NOT results of record.
+
+-- [3a] Source + header checksums --
+4fc951c75ef32598db3cd2750c95f296d6163fa57740e78bf3c6fdc8f0b108dc  verify_odd.cpp
+082311619ddafce2d8c170c8426a051a7d9ac7dc81f3e14a4dc786b8bc65933c  verify_even.cpp
+aa76f57c013d4aaa0420341f4bd7846cbff55e4ffd5b8c76afad94dfc6275cad  prime64.hpp
+81bc472d7b5e2a7a300f07623a46a25e2e57ceed794edfa4c972da79bab16d55  verify_results.py
+
+-- [3b] Executable checksums --
+2843f9ea57965ac235a5fd9ea0e397b5b9038a7b8f373e4bfcee2bbad0b7b689  verify_odd
+509b5ccab52ccdf5f6252c055a70dd312a8f40eb7a77922c0bca0c755669acb3  verify_even
+
+-- [3c] Output (results) checksums + summary --
+75fd0b36abaef49c43c7bb47e53c1b3417df2027034f5d6e1d09ca414eff2851  results/even_deep_checks.csv
+    rows=1027845  OK=0  exceptions=0
+3d2e34033c453ee0022da6a3a5d13be14beac25e1a8f3ef868ac433f77e8a3fd  results/even_results.csv
+    rows=200001  OK=200000  exceptions=0
+6e0ac75612af598781fe15f50c7d2a6a851a15079185d1114391af53ff0cd4f6  results/odd_results.csv
+    rows=2000001  OK=2000000  exceptions=0
+
+NOTE: run  python3 verify_results.py --sample 500  to cross-check coverage,
+      exact count, and re-derived witnesses independently of the C++ code.
+
+================================================================
+RUN MANIFEST  (2026-10-12T18:57:25Z UTC)
+================================================================
+
+-- [1] Source revision --
+commit:      16b67d1424f66e239bb57d0885be8dea04418a9d
+tag/describe: v1.1-51-g16b67d1-dirty
+branch:      main
+WORKING TREE: DIRTY  <-- commit/stash before an archival run
+
+-- [2] Toolchain, OS, architecture --
+os/kernel:   Linux 6.18.33.2-microsoft-standard-WSL2 x86_64 GNU/Linux
+hostname:    WilksOMEN
+cpu:         12th Gen Intel(R) Core(TM) i7-12700K
+cores/threads: 6 logical
+OMP_NUM_THREADS: 6
+
+compiler:    g++
+version:     g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+build flags: -O3 -fopenmp -std=c++17
+backend of record: default (deterministic Miller-Rabin, 12 Sorenson-Webster bases; unconditional).
+                   -DUSE_BPSW builds are conjectural cross-checks, NOT results of record.
+
+-- [3a] Source + header checksums --
+4fc951c75ef32598db3cd2750c95f296d6163fa57740e78bf3c6fdc8f0b108dc  verify_odd.cpp
+082311619ddafce2d8c170c8426a051a7d9ac7dc81f3e14a4dc786b8bc65933c  verify_even.cpp
+aa76f57c013d4aaa0420341f4bd7846cbff55e4ffd5b8c76afad94dfc6275cad  prime64.hpp
+81bc472d7b5e2a7a300f07623a46a25e2e57ceed794edfa4c972da79bab16d55  verify_results.py
+
+-- [3b] Executable checksums --
+2843f9ea57965ac235a5fd9ea0e397b5b9038a7b8f373e4bfcee2bbad0b7b689  verify_odd
+509b5ccab52ccdf5f6252c055a70dd312a8f40eb7a77922c0bca0c755669acb3  verify_even
+
+-- [3c] Output (results) checksums + summary --
+75fd0b36abaef49c43c7bb47e53c1b3417df2027034f5d6e1d09ca414eff2851  results/even_deep_checks.csv
+    rows=1027845  OK=0  exceptions=0
+3d2e34033c453ee0022da6a3a5d13be14beac25e1a8f3ef868ac433f77e8a3fd  results/even_results.csv
+    rows=200001  OK=200000  exceptions=0
+7d8b93f663f791ce21b12f135a240be26d56e7c93177b5dc75b061c5979ddd31  results/odd_checkpoint.csv
+    rows=1  OK=0  exceptions=0
+f81fd113c5df8d57fce26e78eadb85eb704f05dd24124a45c6622d526b398b57  results/odd_results.csv
+    rows=2000001  OK=2000000  exceptions=0
+
+NOTE: run  python3 verify_results.py --sample 500  to cross-check coverage,
+      exact count, and re-derived witnesses independently of the C++ code.
+
