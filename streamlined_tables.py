@@ -1,41 +1,62 @@
 #!/usr/bin/env python3
-"""Tables 1 and 2 of streamlined.tex from Proposition 2.5 (E_1) and
-Proposition 2.7 (E_2) exactly as printed, at n0 = 2e12, from the Bennett et
-al. c_theta table.
+"""Tables 1 and 2 of the paper, and the domination check in the proof of
+Corollary 3.6, at n0 = 2e12, from the Bennett--Martin--O'Bryant--Rechnitzer
+c_theta table.
 
-Table 2 is computed with Z = 1e5 for the base and Z_1 = Z_2 = floor(n0^{A_q}/q)
-for each peeled prime q -- the largest value the hypothesis q Z_i <= n0^A of
-Proposition 2.7 allows.  Each A (base) and A_q (peeled prime) is optimised on
-its own, since every error term depends on its own parameter only.  Lower
-bounds are rounded down and upper bounds up, at the last printed digit.
+Method (as described in the remark after Table 2):
 
-Usage: python3 -I streamlined_tables.py PATH/TO/bennett_c_theta.tsv
+  * The parameters are chosen with scipy's differential_evolution, working in
+    double precision, and then rounded to six decimal places:
+      - Table 1: A for each k, minimising E_1 (Proposition 2.5).
+      - Table 2: for each row, (A, A_q for q | k/m) jointly, minimising the
+        right-hand side of (eqn:suff_cond_lr).
+      - Domination check: A_q for each prime 11 <= q <= 37 on its own,
+        minimising E_2 (Proposition 2.7).
+  * Every bound is then recomputed at the rounded parameters with mpmath at
+    120 significant digits. Lower bounds are rounded down and upper bounds up,
+    at the last printed digit.
+
+Parameters: n0 = 2e12;  c = floor(sqrt(1e5/m)), Z = 1e5 for the base m;
+c_1 = floor(sqrt(1e5/q)), c_2 = floor(10^{5/2}/q),
+Z_1 = Z_2 = min(floor(n0^{A_q}/q), 1e5) for each peeled prime q.
+
+Usage:  python3 streamlined_tables.py bennett_c_theta.tsv [--x0 bennett_x0.tsv] [--seed 0]
+Needs:  Python 3.8+, scipy, mpmath.
 """
+import argparse
 import math
+import os
 import sys
-from math import log, sqrt, floor
-from fractions import Fraction
+from math import isqrt
 
-N0 = 2e12
-L = log(N0)
-CARTIN = 0.3739558
-MMAX = 10**5
-ZBIG = 10**5
+import mpmath
+import scipy
+from mpmath import mp, mpf
+from scipy.optimize import differential_evolution
 
-ctheta = {}
-with open(sys.argv[1]) as fh:
-    next(fh)
-    for line in fh:
-        a, b = line.split()
-        ctheta[int(a)] = float(b)
+mp.dps = 120
 
+N0 = 2 * 10**12
+MMAX = 10**5          # Bennett et al. table covers moduli 3 <= m <= 1e5
+ZBIG = 10**5          # Z for the base, and cap on Z_1, Z_2
+ABOUNDS = (0.30, 0.4999)
+CARTIN = mpf("0.3739558")  # lower bound for Artin's constant 0.37395581...
+
+LF = math.log(N0)
+LM = mp.log(N0)
+
+# ----------------------------------------------------------------------------
+# Elementary arithmetic up to ZBIG
+# ----------------------------------------------------------------------------
 spf = list(range(ZBIG + 1))
-for i in range(2, int(ZBIG ** 0.5) + 1):
+for i in range(2, isqrt(ZBIG) + 1):
     if spf[i] == i:
         for j in range(i * i, ZBIG + 1, i):
             if spf[j] == j:
                 spf[j] = i
-SQF, PHI2, PR = [False] * (ZBIG + 1), [0] * (ZBIG + 1), [()] * (ZBIG + 1)
+SQF = [False] * (ZBIG + 1)
+PHI2 = [0] * (ZBIG + 1)      # phi(d^2) = d * phi(d)
+PR = [()] * (ZBIG + 1)       # distinct prime factors
 for d in range(1, ZBIG + 1):
     x, ps, sf = d, [], True
     while x > 1:
@@ -51,29 +72,27 @@ for d in range(1, ZBIG + 1):
     SQF[d], PHI2[d], PR[d] = sf, d * ph, tuple(ps)
 
 
+def is_prime(n):
+    if n <= ZBIG:
+        return n >= 2 and spf[n] == n
+    return all(n % p for p in range(2, isqrt(n) + 1))
+
+
 def coprime(d, kp):
     return all(p not in kp for p in PR[d])
 
 
-def prefix(kp, kval):
-    """Prefix sums over square-free d coprime to kp of 1/phi(d^2) and of the
-    Brun--Titchmarsh-weighted 1/phi(d^2) * (1 - log(kval d^2)/log n0)^{-1}."""
-    P, W = [0.0] * (ZBIG + 1), [0.0] * (ZBIG + 1)
-    s = w = 0.0
-    for d in range(1, ZBIG + 1):
-        if SQF[d] and coprime(d, kp):
-            t = 1.0 / PHI2[d]
-            s += t
-            if kval * d * d < N0:
-                w += t / (1 - log(kval * d * d) / L)
-            else:
-                w = float("nan")   # weight undefined: such Z is inadmissible
-        P[d], W[d] = s, w
-    return P, W
-
-
-def E(m):
-    return 0.375 / L ** 2 if m == 1 else ctheta[m]
+def primes_of(n):
+    out, x, p = [], n, 2
+    while p * p <= x:
+        if x % p == 0:
+            out.append(p)
+            while x % p == 0:
+                x //= p
+        p += 1
+    if x > 1:
+        out.append(x)
+    return tuple(out)
 
 
 def sqfree_divisors(kp):
@@ -83,128 +102,362 @@ def sqfree_divisors(kp):
     return out
 
 
-# ---------------- Proposition 2.5 ----------------
+# ----------------------------------------------------------------------------
+# Bennett et al. constants
+# ----------------------------------------------------------------------------
+CT_F, CT_M = {}, {}
+
+
+def load_ctheta(path):
+    with open(path) as fh:
+        next(fh)
+        for line in fh:
+            a, b = line.split()
+            CT_F[int(a)] = float(b)
+            CT_M[int(a)] = mpf(b)
+
+
+def check_x0(path):
+    """Theorem 2.2 is applied for n >= n0; check x_theta(m) <= n0 for every m."""
+    worst = 0
+    with open(path) as fh:
+        next(fh)
+        for line in fh:
+            a, b = line.split()
+            worst = max(worst, float(b))
+    assert worst <= N0, f"x_theta exceeds n0: {worst}"
+    return worst
+
+
+def E_f(m):
+    assert m <= MMAX
+    return 0.375 / LF**2 if m == 1 else CT_F[m]
+
+
+def E_m(m):
+    assert m <= MMAX
+    return mpf("0.375") / LM**2 if m == 1 else CT_M[m]
+
+
+# ----------------------------------------------------------------------------
+# High-precision sums over square-free d in (lo, hi]
+# ----------------------------------------------------------------------------
+_INV, _LOGD, _SUMS = {}, {}, {}
+
+
+def _inv(d):
+    if d not in _INV:
+        _INV[d] = mpf(1) / PHI2[d]
+    return _INV[d]
+
+
+def _logd(d):
+    if d not in _LOGD:
+        _LOGD[d] = mp.log(d)
+    return _LOGD[d]
+
+
+def mp_sums(kp, kval, lo, hi):
+    """(sum 1/phi(d^2), sum 1/phi(d^2) * (1 - log(kval d^2)/log n0)^{-1}) over
+    square-free d in (lo, hi] coprime to the primes kp."""
+    key = (kp, kval, lo, hi)
+    if key in _SUMS:
+        return _SUMS[key]
+    assert kval * hi * hi < N0, "Brun--Titchmarsh weight undefined"
+    lk = mp.log(kval)
+    s = w = mpf(0)
+    for d in range(lo + 1, hi + 1):
+        if SQF[d] and coprime(d, kp):
+            t = _inv(d)
+            s += t
+            w += t / (1 - (lk + 2 * _logd(d)) / LM)
+    _SUMS[key] = (s, w)
+    return s, w
+
+
+def float_prefix(kp, kval):
+    """Double-precision prefix sums used only inside the optimiser."""
+    P, W = [0.0] * (ZBIG + 1), [0.0] * (ZBIG + 1)
+    s = w = 0.0
+    lk = math.log(kval)
+    for d in range(1, ZBIG + 1):
+        if SQF[d] and coprime(d, kp):
+            t = 1.0 / PHI2[d]
+            s += t
+            if kval * d * d < N0:
+                w += t / (1 - (lk + 2 * math.log(d)) / LF)
+            else:
+                w = float("nan")
+        P[d], W[d] = s, w
+    return P, W
+
+
+# ----------------------------------------------------------------------------
+# Proposition 2.5: E_1(m, n0, c, A, Z)
+# ----------------------------------------------------------------------------
 class Base:
-    def __init__(self, kp):
-        self.kp = kp
-        self.k = math.prod(kp) if kp else 1
-        self.c = int(floor(sqrt(MMAX / self.k)))
-        self.alpha = math.prod((q - 2) / (q - 1) for q in kp)
-        self.main = CARTIN * math.prod((q * q - 2 * q) / (q * q - q - 1) for q in kp)
-        divs = sqfree_divisors(kp)
-        self.s1 = math.fsum(E(e * d * d) for d in range(1, self.c + 1)
-                            if SQF[d] and coprime(d, kp) for e in divs)
-        P, W = prefix(kp, self.k)
-        self.s2 = P[ZBIG] - P[self.c] + 4.0 / ZBIG
-        self.s3 = W[ZBIG] - W[self.c]
-        assert self.k * ZBIG ** 2 < N0          # hypothesis k Z^2 < n0
+    def __init__(self, m):
+        self.m = m
+        self.kp = primes_of(m) if m > 1 else ()
+        self.w = len(self.kp)
+        self.c = isqrt(MMAX // m)                       # floor(sqrt(1e5/m))
+        self.Z = ZBIG
+        assert self.c >= 1 and self.Z > self.c
+        assert m * self.Z**2 < N0                       # k Z^2 < n0
+        divs = sqfree_divisors(self.kp)
+        ds = [d for d in range(1, self.c + 1) if SQF[d] and coprime(d, self.kp)]
+        assert all(e * d * d <= MMAX for d in ds for e in divs)
+        self.s1_f = math.fsum(E_f(e * d * d) for d in ds for e in divs)
+        self.s1_m = mp.fsum(E_m(e * d * d) for d in ds for e in divs)
+        P, W = float_prefix(self.kp, m)
+        self.s2_f = P[self.Z] - P[self.c] + 4.0 / self.Z
+        self.s3_f = W[self.Z] - W[self.c]
+        s, w = mp_sums(self.kp, m, self.c, self.Z)
+        self.s2_m = s + mpf(4) / self.Z
+        self.s3_m = w
+        self.alpha_m = mp.fprod([mpf(q - 2) / (q - 1) for q in self.kp])
+        self.alpha_f = float(self.alpha_m)
+        self.main_m = CARTIN * mp.fprod([mpf(q * q - 2 * q) / (q * q - q - 1) for q in self.kp])
+        self.up_m = mp.fprod([mpf(q + 1) / q for q in self.kp])
+        self.up_f = float(self.up_m)
 
-    def E1(self, A):
-        k, w = self.k, len(self.kp)
-        return (self.s1 / L + N0 ** (A - 1) * log(k) / sqrt(k)
-                + (self.s2 + 2 * self.s3 + 8 / (ZBIG * (1 - 2 * A))) * self.alpha
-                + (2 ** w * N0 ** (A - 1) / sqrt(k)
-                   + math.prod((q + 1) / q for q in self.kp) / (N0 ** A / sqrt(k) - 1)
-                   + (2 ** w + (1 if k == 1 else 0)) / sqrt(N0)) * L)
+    def E1_f(self, A):
+        k, w = self.m, self.w
+        rk = math.sqrt(k)
+        return (self.s1_f / LF + N0 ** (A - 1) * math.log(k) / rk
+                + (self.s2_f + 2 * self.s3_f + 8 / (self.Z * (1 - 2 * A))) * self.alpha_f
+                + (2**w * N0 ** (A - 1) / rk
+                   + self.up_f / (N0**A / rk - 1)
+                   + (2**w + (k == 1)) / math.sqrt(N0)) * LF)
+
+    def E1_m(self, A):
+        A = mpf(A)
+        k, w = self.m, self.w
+        rk, n = mp.sqrt(k), mpf(N0)
+        assert self.c * rk <= n**A                      # c sqrt(k) <= n0^A
+        return (self.s1_m / LM + n ** (A - 1) * mp.log(k) / rk
+                + (self.s2_m + 2 * self.s3_m + 8 / (self.Z * (1 - 2 * A))) * self.alpha_m
+                + (2**w * n ** (A - 1) / rk
+                   + self.up_m / (n**A / rk - 1)
+                   + (2**w + (1 if k == 1 else 0)) / mp.sqrt(n)) * LM)
 
 
-# ---------------- Proposition 2.7 ----------------
+# ----------------------------------------------------------------------------
+# Proposition 2.7: E_2(q, n0, c_1, c_2, A, Z_1, Z_2)
+# ----------------------------------------------------------------------------
 class Peel:
     def __init__(self, q):
+        assert q % 2 and is_prime(q)
         self.q = q
-        self.c1 = int(floor(sqrt(MMAX / q)))
-        self.c2 = int(floor(10 ** 2.5 / q))
-        assert q * self.c1 ** 2 <= MMAX and q * q * self.c2 ** 2 <= MMAX
-        self.sh1 = math.fsum(E(q * d * d) for d in range(1, self.c1 + 1) if SQF[d] and d % q)
-        self.sh2 = math.fsum(E(q * q * d * d) for d in range(1, self.c2 + 1) if SQF[d] and d % q)
-        self.P, self.W1 = prefix((q,), q)
-        _, self.W2 = prefix((q,), q * q)
+        self.c1 = isqrt(MMAX // q)                      # floor(sqrt(1e5/q))
+        self.c2 = isqrt(MMAX // (q * q))                # floor(10^{5/2}/q)
+        assert self.c1 >= 1 and self.c2 >= 1
+        assert q * self.c1**2 <= MMAX and q * q * self.c2**2 <= MMAX
+        d1 = [d for d in range(1, self.c1 + 1) if SQF[d] and d % q]
+        d2 = [d for d in range(1, self.c2 + 1) if SQF[d] and d % q]
+        self.sh1_f = math.fsum(E_f(q * d * d) for d in d1)
+        self.sh2_f = math.fsum(E_f(q * q * d * d) for d in d2)
+        self.sh1_m = mp.fsum(E_m(q * d * d) for d in d1)
+        self.sh2_m = mp.fsum(E_m(q * q * d * d) for d in d2)
+        self.P, self.W1 = float_prefix((q,), q)
+        _, self.W2 = float_prefix((q,), q * q)
 
-    def Z_of(self, A):
-        return int(floor(N0 ** A / self.q))
+    def Z_f(self, A):
+        return min(int(math.floor(N0**A / self.q)), ZBIG)
 
-    def E2(self, A, Z=None):
+    def Z_m(self, A):
+        return min(int(mp.floor(mpf(N0) ** mpf(A) / self.q)), ZBIG)
+
+    def E2_f(self, A):
+        q, Z = self.q, self.Z_f(A)
+        if Z <= max(self.c1, self.c2):
+            return float("inf")
+        s2_1 = self.P[Z] - self.P[self.c1] + 4.0 / Z
+        s2_2 = self.P[Z] - self.P[self.c2] + 4.0 / Z
+        s3_1 = self.W1[Z] - self.W1[self.c1]
+        s3_2 = self.W2[Z] - self.W2[self.c2]
+        if math.isnan(s3_1) or math.isnan(s3_2):
+            return float("inf")
+        e1 = self.sh1_f / LF + (2 / (q - 1)) * (s2_1 / 2 + s3_1 + 4 / (Z * (1 - 2 * A)))
+        e2 = self.sh2_f / LF + (2 / (q * (q - 1))) * (s2_2 / 2 + s3_2 + 4 / (Z * (1 - 2 * A)))
+        return e1 + e2 + (q * N0 ** (-2 * A) + N0 ** (-A) + N0 ** (A - 1) / q) * LF
+
+    def E2_m(self, A):
+        q, Z = self.q, self.Z_m(A)
+        A, n = mpf(A), mpf(N0)
+        assert Z > self.c1 and Z > self.c2
+        assert q * Z <= n**A                            # q Z_i <= n0^A
+        s1, w1 = mp_sums((q,), q, self.c1, Z)
+        s2, w2 = mp_sums((q,), q * q, self.c2, Z)
+        s2_1, s2_2 = s1 + mpf(4) / Z, s2 + mpf(4) / Z
+        e1 = self.sh1_m / LM + (mpf(2) / (q - 1)) * (s2_1 / 2 + w1 + 4 / (Z * (1 - 2 * A)))
+        e2 = self.sh2_m / LM + (mpf(2) / (q * (q - 1))) * (s2_2 / 2 + w2 + 4 / (Z * (1 - 2 * A)))
+        return e1 + e2 + (q * n ** (-2 * A) + n ** (-A) + n ** (A - 1) / q) * LM
+
+    def h_m(self, A):
+        """Contribution of q in the proof of Corollary 3.6."""
         q = self.q
-        Z1 = Z2 = (self.Z_of(A) if Z is None else Z)
-        if Z1 > ZBIG:
-            return float("inf")       # outside the precomputed range; never optimal
-        assert Z1 > self.c1 and Z2 > self.c2
-        P, W1, W2 = self.P, self.W1, self.W2
-        s2_1 = P[Z1] - P[self.c1] + 4.0 / Z1
-        s2_2 = P[Z2] - P[self.c2] + 4.0 / Z2
-        s3_1 = W1[Z1] - W1[self.c1]
-        s3_2 = W2[Z2] - W2[self.c2]
-        e1 = self.sh1 / L + (2 / (q - 1)) * (s2_1 / 2 + s3_1 + 4 / (Z1 * (1 - 2 * A)))
-        e2 = self.sh2 / L + (2 / (q * (q - 1))) * (s2_2 / 2 + s3_2 + 4 / (Z2 * (1 - 2 * A)))
-        return e1 + e2 + (q * N0 ** (-2 * A) + N0 ** (-A) + N0 ** (A - 1) / q) * L
+        return CARTIN * mpf(q - 1) / (q * q - q - 1) + self.E2_m(A)
 
 
-def argmin(f, lo, hi, steps=4000):
-    xs = [lo + (hi - lo) * i / steps for i in range(steps + 1)]
-    best = min(xs, key=f)
-    h = (hi - lo) / steps
-    a, b = max(lo, best - 2 * h), min(hi, best + 2 * h)
-    for _ in range(200):          # ternary refinement inside the bracket
-        m1, m2 = a + (b - a) / 3, b - (b - a) / 3
-        if f(m1) <= f(m2):
-            b = m2
-        else:
-            a = m1
-    x = round((a + b) / 2, 6)     # the printed value is the one used
-    return x, f(x)
+# ----------------------------------------------------------------------------
+# Lemma 2.6 / Corollary 3.5: c_q(n0)
+# ----------------------------------------------------------------------------
+def c_q(q):
+    if q <= 100:
+        return mpf(1) / q + 1 / (420 * LM)
+    if q <= 10**5:
+        return mpf(1) / (q - 1) + 1 / (160 * LM)
+    return mpf("0.000041")
+
+
+def c_q_f(q):
+    if q <= 100:
+        return 1 / q + 1 / (420 * LF)
+    if q <= 10**5:
+        return 1 / (q - 1) + 1 / (160 * LF)
+    return 0.000041
+
+
+# ----------------------------------------------------------------------------
+# Optimisation and rounding
+# ----------------------------------------------------------------------------
+def de_min(f, dim, seed):
+    res = differential_evolution(lambda x: f(x), [ABOUNDS] * dim, seed=seed,
+                                 tol=1e-14, atol=0, maxiter=5000, popsize=40,
+                                 mutation=(0.5, 1.0), recombination=0.9,
+                                 polish=False, init="sobol")
+    return [round(float(v), 6) for v in res.x]
 
 
 def down(x, dp):
-    return math.floor(x * 10 ** dp) / 10 ** dp
+    v = int(mp.floor(x * 10**dp))
+    return f"{v // 10**dp}.{v % 10**dp:0{dp}d}"
 
 
 def up(x, dp):
-    return math.ceil(x * 10 ** dp) / 10 ** dp
+    v = int(mp.ceil(x * 10**dp))
+    return f"{v // 10**dp}.{v % 10**dp:0{dp}d}"
 
 
-def primes_of(n):
-    out, x, p = [], n, 2
-    while p * p <= x:
-        if x % p == 0:
-            out.append(p)
-            x //= p
-        else:
-            p += 1
-    if x > 1:
-        out.append(x)
-    return tuple(out)
+GAPS = []
+
+
+def grid_check(f, A_de, steps=20000):
+    """Sanity check on the optimiser, for the one-dimensional searches only:
+    how much a 20001-point grid improves on the rounded DE optimum. Optimality
+    is not needed for any bound to be valid; this only confirms the search."""
+    lo, hi = ABOUNDS
+    best = min(f(lo + (hi - lo) * i / steps) for i in range(steps + 1))
+    GAPS.append(max(0.0, f(A_de) - best))
+
+
+# ----------------------------------------------------------------------------
+# Main
+# ----------------------------------------------------------------------------
+TABLE1_K = (1, 3, 5, 7, 15, 21, 35, 105)
+TABLE2_ROWS = [(3, 138567), (3, 289731), (5, 230945), (7, 323323), (15, 36465), (15, 62985),
+               (21, 51051), (21, 88179), (35, 85085), (105, 15015), (105, 23205)]
+SMALL_Q = [q for q in range(11, 38) if is_prime(q)]     # q <= 37: through h(q)
+Q_LARGE = 41                                            # q >= 41: through c_q(n0)
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("ctheta", help="bennett_c_theta.tsv")
+    ap.add_argument("--x0", default=None, help="bennett_x0.tsv (default: beside ctheta)")
+    ap.add_argument("--seed", type=int, default=0, help="seed for differential_evolution")
+    args = ap.parse_args()
+
+    load_ctheta(args.ctheta)
+    x0path = args.x0 or os.path.join(os.path.dirname(os.path.abspath(args.ctheta)), "bennett_x0.tsv")
+    print(f"python {sys.version.split()[0]}, scipy {scipy.__version__}, mpmath {mpmath.__version__}, "
+          f"mp.dps = {mp.dps}, seed = {args.seed}, n0 = {N0:.0e}")
+    if os.path.exists(x0path):
+        print(f"max x_theta(m) over 3 <= m <= 1e5: {check_x0(x0path):.0f} <= n0  [OK]")
+    ok = True
+
+    # ------------------------------------------------------------- Table 1
+    print("\nTable 1 (Theorem 2.3 and tab:detailed_comps): c = floor(sqrt(1e5/k)), Z = 1e5")
+    print("  k & A & Sigma_1 & Sigma_2 & Sigma_3 & alpha_k")
+    bases = {}
+    for k in TABLE1_K:
+        b = Base(k)
+        (A,) = de_min(lambda x: b.E1_f(x[0]), 1, args.seed)
+        grid_check(b.E1_f, A)
+        alpha = b.main_m - b.E1_m(A)
+        bases[k] = (b, A, alpha)
+        print(f"  ${k}$ & ${A:.6f}$ & ${up(b.s1_m, 5)}$ & ${up(b.s2_m, 5)}$ & ${up(b.s3_m, 5)}$ "
+              f"& ${down(alpha, 6)}$ \\\\")
+
+    # ------------------------------------------------------------- Table 2
+    print("\nTable 2: (A, A_q) jointly by differential evolution for each row, "
+          "Z_1 = Z_2 = min(floor(n0^{A_q}/q), 1e5)")
+    print("  m & k & A & (A_q) & LHS & RHS")
+    peels = {}
+    rowdata = []
+    for idx, (m, k) in enumerate(TABLE2_ROWS):
+        b = bases[m][0]
+        qs = [q for q in primes_of(k) if m % q]
+        for q in qs:
+            peels.setdefault(q, Peel(q))
+        f = lambda x: b.E1_f(x[0]) + sum(peels[q].E2_f(a) for q, a in zip(qs, x[1:]))
+        xs = de_min(f, 1 + len(qs), args.seed + idx)
+        A, Aqs = xs[0], xs[1:]
+        a = mp.fprod([mpf(q * q - 2 * q) / (q * q - q - 1) for q in b.kp])
+        s = mp.fsum([mpf(q - 1) / (q * q - q - 1) for q in qs])
+        lhs = (a - s) * CARTIN
+        rhs = mp.log(2) / N0 + b.E1_m(A) + mp.fsum([peels[q].E2_m(aq) for q, aq in zip(qs, Aqs)])
+        good = (a > s) and (lhs > rhs)
+        ok &= good
+        rowdata.append((m, k, qs, A, Aqs, lhs, rhs))
+        print(f"  ${m}$ & ${k}$ & ${A:.6f}$ & {', '.join(f'{x:.6f}' for x in Aqs)} & "
+              f"${down(lhs, 6)}$ & ${up(rhs, 6)}$ \\\\" + ("" if good else "   [FAILS]"))
+
+    # ------------------------------------------------- Domination check
+    print("\nDomination check (proof of Corollary 3.6): h(q) = C(q-1)/(q^2-q-1) + E_2(q) "
+          "for 11 <= q <= 37 at its own optimal A_q; c_q(n0) for q >= 41")
+    hopt = {}
+    for q in SMALL_Q:
+        pq = peels.setdefault(q, Peel(q))
+        (Aq,) = de_min(lambda x: pq.E2_f(x[0]), 1, args.seed)
+        grid_check(pq.E2_f, Aq)
+        hopt[q] = pq.h_m(Aq)
+        print(f"  q = {q:2d}: A_q = {Aq:.6f}  Z = {pq.Z_m(Aq):6d}  h(q) = {up(hopt[q], 6)}")
+
+    # c_q(n0) is non-increasing in q over all odd primes: checked up to 1e5 in
+    # double precision (consecutive gaps are far above rounding error), and
+    # c_q = 0.000041 beyond 1e5 is below every earlier value.
+    plist = [p for p in range(3, ZBIG + 1) if is_prime(p)]
+    mono = all(c_q_f(plist[i]) > c_q_f(plist[i + 1]) for i in range(len(plist) - 1))
+    mono &= c_q(plist[-1]) > c_q(ZBIG + 3)
+    ok &= mono
+    print(f"  c_q(n0) non-increasing over all odd primes q: {'OK' if mono else 'FAILS'}; "
+          f"c_41(n0) = {up(c_q(Q_LARGE), 6)}")
+
+    worst = None
+    for m, k, qs, A, Aqs, lhs, rhs in rowdata:
+        hrow = {q: peels[q].h_m(aq) for q, aq in zip(qs, Aqs)}
+        for qstar in qs[1:]:                    # every position except the least prime
+            cands = [(q, hopt[q]) for q in SMALL_Q if q > qstar] + [(Q_LARGE, c_q(Q_LARGE))]
+            for q, val in cands:
+                margin = hrow[qstar] - val
+                if worst is None or margin < worst[0]:
+                    worst = (margin, m, k, qstar, q)
+                if margin < 0:
+                    ok = False
+                    print(f"  FAILS: row m={m}, k={k}: q={q} exceeds q*={qstar}")
+    margin, m, k, qstar, q = worst
+    print(f"  every prime q > q* contributes at most h(q*): "
+          f"{'OK' if margin >= 0 else 'FAILS'} (tightest: row m={m}, k={k}, "
+          f"q* = {qstar} against q = {q}, margin {mp.nstr(margin, 6)})")
+
+    print(f"\nOptimiser sanity check (1-D searches): a 20001-point grid improves on the rounded "
+          f"DE optimum by at most {max(GAPS):.1e} (below half a unit in the sixth decimal: "
+          f"{'yes' if max(GAPS) < 5e-7 else 'NO'})")
+    print("\nALL CHECKS PASSED" if ok else "\nSOME CHECK FAILED")
+    sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
-    print("Table 1 (Theorem 2.3), n0 = 2e12, c = floor(10^{5/2}/sqrt k), Z = 1e5")
-    t1 = {}
-    for k in (1, 3, 5, 7, 15, 21, 35, 105):
-        b = Base(primes_of(k) if k > 1 else ())
-        A, e = argmin(b.E1, 0.30, 0.4999)
-        t1[k] = (A, b, b.main - e)
-        print(f"  k={k:4d}  A={A:.6f}  Sigma1={up(b.s1, 5):.5f}  Sigma2={up(b.s2, 5):.5f}  "
-              f"Sigma3={up(b.s3, 5):.5f}  alpha_k={down(b.main - e, 6):.6f}")
-
-    rows = [(3, 138567), (3, 289731), (5, 230945), (7, 323323), (15, 36465), (15, 62985),
-            (21, 51051), (21, 88179), (35, 85085), (105, 15015), (105, 23205)]
-    peels = {q: Peel(q) for q in (11, 13, 17, 19, 23)}
-    opt = {}
-    print("\nPeeled primes: optimal A_q with Z_1 = Z_2 = floor(n0^{A_q}/q)")
-    for q, pq in peels.items():
-        A, e = argmin(pq.E2, 0.30, 0.4999)
-        opt[q] = (A, e)
-        print(f"  q={q}: A_q={A:.6f}  Z_1=Z_2={pq.Z_of(A)}  E_2={e:.6f}"
-              f"   [same A_q, Z=1e5 as before: {pq.E2(A, ZBIG):.6f}]")
-
-    print("\nTable 2 (corrected)")
-    print("  m & k & A & (A_q) & LHS & RHS")
-    for m, k in rows:
-        mp = primes_of(m)
-        qs = [q for q in primes_of(k) if m % q]
-        A, e1 = t1[m][0], t1[m][1].E1(t1[m][0])
-        lhs = (Fraction(1)
-               * math.prod(Fraction(q * q - 2 * q, q * q - q - 1) for q in mp)
-               - sum(Fraction(q - 1, q * q - q - 1) for q in qs)) * Fraction("0.3739558")
-        rhs = log(2) / N0 + e1 + sum(opt[q][1] for q in qs)
-        print(f"  ${m}$ & ${k}$ & ${A:.6f}$ & {', '.join(f'{opt[q][0]:.6f}' for q in qs)} & "
-              f"${down(float(lhs), 6):.6f}$ & ${up(rhs, 6):.6f}$ \\\\")
+    main()
