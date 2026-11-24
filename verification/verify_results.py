@@ -21,7 +21,11 @@ of their code:
      primality and square-free routines below. This re-checks primality,
      square-freeness and support-disjointness on real data, independently.
   4. FALLBACK COUNT: totals the last column of odd_results.csv, the number of
-     odd n that the fast path did not clear and the exhaustive search had to.
+     odd n that the fast path did not clear and the fallback search had to.
+  5. DEEP CHECKS: every row of even_deep_checks.csv (the even n cleared only by
+     the final tier) lists three distinct primes q with 2q < n, so each split
+     supplies two distinct primes; for a random sample of rows (--sample), q
+     and n - q are re-tested for primality.
 
 Primality here is deterministic Miller-Rabin with the twelve Sorenson-Webster
 bases (unconditional below 318665857834031151167461 ~ 3.19e23), matching the
@@ -94,9 +98,9 @@ def is_squarefree(m):
             m //= p
     if m == 1:
         return True
-    # residual m has only prime factors > 37; it is square-free iff it is not
-    # itself a perfect square times ... -> test all prime-square divisors up to
-    # cube-root, then a final perfect-square check on what remains.
+    # residual m has only prime factors > 37. Removing every factor d with
+    # d^3 <= m leaves 1, a prime, a product of two distinct primes, or the
+    # square of a prime; only the last is not square-free.
     d = 41
     while d * d * d <= m:
         if m % d == 0:
@@ -141,15 +145,16 @@ NUM_SPLITS = 3         # must equal verify_even.cpp's NUM_SPLITS
 
 # --- independent witness re-derivation, per kind ----------------------------
 def find_splits(n):
-    """NUM_SPLITS distinct Goldbach splits of an even n."""
+    """NUM_SPLITS distinct Goldbach splits n = p + (n - p) of an even n, with
+    p < n - p, so the 2 * NUM_SPLITS primes are pairwise distinct."""
     found = []
     for p in _primes_asc(n):
+        if 2 * p >= n:
+            break
         if is_prime(n - p):
             found.append((p, n - p))
-            # distinct splits are distinct unordered pairs; collect NUM_SPLITS
-            if len({frozenset(pr) for pr in found}) >= NUM_SPLITS:
-                pairs = list({frozenset(pr) for pr in found})[:NUM_SPLITS]
-                return "; ".join("%d+%d" % tuple(sorted(pr)) for pr in pairs)
+            if len(found) == NUM_SPLITS:
+                return "; ".join("%d+%d" % pr for pr in found)
     return None
 
 
@@ -253,7 +258,7 @@ def check_coverage(name, meta, path):
     if last_end < meta["end"]:
         problems.append(f"{name}: coverage stops at {last_end}, short of RANGE_END {meta['end']}")
 
-    # exact count (item 8)
+    # exact count (item 2)
     covered = _count_integers(meta["start"], last_end, meta["stride"])
     expected = _count_integers(meta["start"], meta["end"], meta["stride"])
     if last_end >= meta["end"] and covered != expected:
@@ -306,6 +311,38 @@ def check_witnesses(name, meta, n_samples, rng):
     return problems
 
 
+def check_deep(path, n_samples, rng):
+    """Item 5: the rows of even_deep_checks.csv."""
+    if not os.path.exists(path):
+        print(f"  even_deep_checks: SKIPPED ({path} not present)")
+        return []
+    problems, rows = [], []
+    with open(path, newline="") as fh:
+        reader = csv.reader(fh)
+        next(reader, None)
+        for line in reader:
+            try:
+                n = int(line[0])
+                qs = [int(x) for x in line[1].strip("[]").split(";")]
+            except (IndexError, ValueError):
+                problems.append(f"even_deep_checks: unparseable row: {line[:2]}")
+                continue
+            if len(qs) != NUM_SPLITS or len(set(qs)) != NUM_SPLITS or any(2 * q >= n for q in qs):
+                problems.append(f"even_deep_checks: n={n} does not list {NUM_SPLITS} "
+                                f"distinct q < n/2: {qs}")
+            rows.append((n, qs))
+    for n, qs in rng.sample(rows, min(n_samples, len(rows))):
+        for q in qs:
+            if not (is_prime(q) and is_prime(n - q)):
+                problems.append(f"even_deep_checks: n={n}: {q} + {n - q} is not a Goldbach split")
+    largest = max((max(qs) for _, qs in rows), default=0)
+    print(f"  even_deep_checks: {len(rows):,} rows, each with {NUM_SPLITS} distinct q < n/2 "
+          f"(largest q = {largest}); primality re-tested for "
+          f"{min(n_samples, len(rows))} sampled rows"
+          + ("" if not problems else f"  ({len(problems)} PROBLEMS)"))
+    return problems
+
+
 def main():
     ap = argparse.ArgumentParser(description="Independent cross-verifier for the finite computation")
     ap.add_argument("--results-dir", default="results", help="directory holding the *_results.csv files")
@@ -329,6 +366,11 @@ def main():
         print(f"\n== Independent witness re-derivation ({args.sample}/verifier) ==")
         for name in names:
             all_problems += check_witnesses(name, VERIFIERS[name], args.sample, rng)
+
+    if "even" in names:
+        print("\n== Final-tier even checks ==")
+        all_problems += check_deep(os.path.join(args.results_dir, "even_deep_checks.csv"),
+                                   args.sample, rng)
 
     print()
     if all_problems:
