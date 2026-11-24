@@ -12,9 +12,14 @@ Method (as described in the remark after Table 2):
         right-hand side of (eqn:suff_cond_lr).
       - Domination check: A_q for each prime 11 <= q <= 37 on its own,
         minimising E_2 (Proposition 2.7).
-  * Every bound is then recomputed at the rounded parameters with mpmath at
-    120 significant digits. Lower bounds are rounded down and upper bounds up,
-    at the last printed digit.
+  * Every bound is then recomputed at the rounded parameters with mpmath to
+    at least 120 decimal places (mp.dps = 135; no quantity used exceeds
+    n0 = 2e12 in size). Lower bounds are rounded down and upper bounds up, at
+    the last printed digit.
+
+The script then checks the values printed in the paper directly: Table 1 and
+Table 2 at the parameters printed there, and the domination step with the
+A_q printed in Table 2.
 
 Parameters: n0 = 2e12;  c = floor(sqrt(1e5/m)), Z = 1e5 for the base m;
 c_1 = floor(sqrt(1e5/q)), c_2 = floor(10^{5/2}/q),
@@ -34,7 +39,7 @@ import scipy
 from mpmath import mp, mpf
 from scipy.optimize import differential_evolution
 
-mp.dps = 120
+mp.dps = 135   # >= 120 decimal places for every quantity (all are below 1e13)
 
 N0 = 2 * 10**12
 MMAX = 10**5          # Bennett et al. table covers moduli 3 <= m <= 1e5
@@ -356,10 +361,61 @@ def grid_check(f, A_de, steps=20000):
 # Main
 # ----------------------------------------------------------------------------
 TABLE1_K = (1, 3, 5, 7, 15, 21, 35, 105)
+
+# Values as printed in the paper.
+# Theorem 2.3 and Table 1 (tab:detailed_comps): k -> (A, Sigma_1, Sigma_2, Sigma_3, alpha_k)
+PAPER_T1 = {
+    1: ("0.417301", "0.59123", "0.00322", "0.00619", "0.336775"),
+    3: ("0.443722", "0.40654", "0.00367", "0.0071", "0.200473"),
+    5: ("0.439804", "0.32124", "0.00561", "0.01092", "0.262482"),
+    7: ("0.440077", "0.27167", "0.00714", "0.01392", "0.279591"),
+    15: ("0.461668", "0.20577", "0.00669", "0.013", "0.15678"),
+    21: ("0.461901", "0.1867", "0.00836", "0.01632", "0.166938"),
+    35: ("0.458742", "0.15419", "0.01368", "0.02661", "0.203566"),
+    105: ("0.475597", "0.10578", "0.0167", "0.0323", "0.120652"),
+}
+# Table 2 (tab:remaining_cases): (m, k, A, (A_q for q | k/m, increasing q), LHS, RHS)
+PAPER_T2 = [
+    (3, 138567, "0.443717", ("0.467435", "0.468303", "0.468351", "0.468681"), "0.119296", "0.070475"),
+    (3, 289731, "0.443601", ("0.468152", "0.468516", "0.468748", "0.468869"), "0.137312", "0.066038"),
+    (5, 230945, "0.439830", ("0.467916", "0.468116", "0.468559", "0.468827"), "0.190150", "0.079321"),
+    (7, 323323, "0.440037", ("0.467856", "0.468062", "0.468666", "0.468659"), "0.214153", "0.086214"),
+    (15, 36465, "0.461550", ("0.467945", "0.468108", "0.468582"), "0.091799", "0.056884"),
+    (15, 62985, "0.461715", ("0.468068", "0.468585", "0.468776"), "0.106367", "0.053387"),
+    (21, 51051, "0.461936", ("0.467830", "0.468094", "0.468672"), "0.106200", "0.061128"),
+    (21, 88179, "0.461906", ("0.468284", "0.468527", "0.468819"), "0.120768", "0.057630"),
+    (35, 85085, "0.458677", ("0.468142", "0.468405", "0.468491"), "0.166686", "0.084985"),
+    (105, 15015, "0.475572", ("0.468015", "0.468364"), "0.087955", "0.056593"),
+    (105, 23205, "0.475571", ("0.468355", "0.468543"), "0.100184", "0.053545"),
+]
 TABLE2_ROWS = [(3, 138567), (3, 289731), (5, 230945), (7, 323323), (15, 36465), (15, 62985),
                (21, 51051), (21, 88179), (35, 85085), (105, 15015), (105, 23205)]
 SMALL_Q = [q for q in range(11, 38) if is_prime(q)]     # q <= 37: through h(q)
 Q_LARGE = 41                                            # q >= 41: through c_q(n0)
+
+
+def domination(rows, peels, hopt, label):
+    """Proof of Corollary 3.6: for each row and each prime q* of k/m other than
+    the least, every prime q > q* contributes at most h(q*) (taken at the row's
+    A_q): through h(q) at its own optimal A_q for q <= 37, and through
+    c_q(n0) <= c_41(n0) for q >= 41."""
+    ok, worst = True, None
+    for m, k, qs, A, Aqs, lhs, rhs in rows:
+        hrow = {q: peels[q].h_m(aq) for q, aq in zip(qs, Aqs)}
+        for qstar in qs[1:]:
+            cands = [(q, hopt[q]) for q in SMALL_Q if q > qstar] + [(Q_LARGE, c_q(Q_LARGE))]
+            for q, val in cands:
+                margin = hrow[qstar] - val
+                if worst is None or margin < worst[0]:
+                    worst = (margin, m, k, qstar, q)
+                if margin < 0:
+                    ok = False
+                    print(f"  FAILS: row m={m}, k={k}: q={q} exceeds q*={qstar}")
+    margin, m, k, qstar, q = worst
+    print(f"  every prime q > q* contributes at most h(q*), {label}: "
+          f"{'OK' if ok else 'FAILS'} (tightest: row m={m}, k={k}, "
+          f"q* = {qstar} against q = {q}, margin {mp.nstr(margin, 6)})")
+    return ok
 
 
 def main():
@@ -435,22 +491,40 @@ def main():
     print(f"  c_q(n0) non-increasing over all odd primes q: {'OK' if mono else 'FAILS'}; "
           f"c_41(n0) = {up(c_q(Q_LARGE), 6)}")
 
-    worst = None
-    for m, k, qs, A, Aqs, lhs, rhs in rowdata:
-        hrow = {q: peels[q].h_m(aq) for q, aq in zip(qs, Aqs)}
-        for qstar in qs[1:]:                    # every position except the least prime
-            cands = [(q, hopt[q]) for q in SMALL_Q if q > qstar] + [(Q_LARGE, c_q(Q_LARGE))]
-            for q, val in cands:
-                margin = hrow[qstar] - val
-                if worst is None or margin < worst[0]:
-                    worst = (margin, m, k, qstar, q)
-                if margin < 0:
-                    ok = False
-                    print(f"  FAILS: row m={m}, k={k}: q={q} exceeds q*={qstar}")
-    margin, m, k, qstar, q = worst
-    print(f"  every prime q > q* contributes at most h(q*): "
-          f"{'OK' if margin >= 0 else 'FAILS'} (tightest: row m={m}, k={k}, "
-          f"q* = {qstar} against q = {q}, margin {mp.nstr(margin, 6)})")
+    ok &= domination(rowdata, peels, hopt, "with the A_q found above")
+
+    # ------------------------------------------ values printed in the paper
+    print("\nValues printed in the paper")
+    print("  Table 1 and Theorem 2.3, at the printed A: printed Sigma_i >= computed, "
+          "printed alpha_k <= computed")
+    for k in TABLE1_K:
+        b = bases[k][0]
+        A, S1, S2, S3, al = PAPER_T1[k]
+        comp = (b.s1_m, b.s2_m, b.s3_m)
+        alpha = b.main_m - b.E1_m(A)
+        good = all(mpf(x) >= c for x, c in zip((S1, S2, S3), comp)) and mpf(al) <= alpha
+        ok &= good
+        print(f"    k = {k:3d}: {'OK' if good else 'FAILS'}  (computed alpha_k = {down(alpha, 6)}, "
+              f"printed {al})")
+    print("  Table 2, at the printed A and A_q: printed LHS <= computed LHS, "
+          "printed RHS >= computed RHS, printed LHS > printed RHS")
+    prow = []
+    for m, k, A, Aqs, L_p, R_p in PAPER_T2:
+        b = bases[m][0]
+        qs = [q for q in primes_of(k) if m % q]
+        assert len(qs) == len(Aqs)
+        a = mp.fprod([mpf(q * q - 2 * q) / (q * q - q - 1) for q in b.kp])
+        s = mp.fsum([mpf(q - 1) / (q * q - q - 1) for q in qs])
+        lhs = (a - s) * CARTIN
+        rhs = mp.log(2) / N0 + b.E1_m(A) + mp.fsum([peels[q].E2_m(aq) for q, aq in zip(qs, Aqs)])
+        good = (a > s) and mpf(L_p) <= lhs and mpf(R_p) >= rhs and mpf(L_p) > mpf(R_p)
+        ok &= good
+        same = down(lhs, 6) == L_p and up(rhs, 6) == R_p
+        prow.append((m, k, qs, A, Aqs, lhs, rhs))
+        print(f"    m = {m:3d}, k = {k:6d}: {'OK' if good else 'FAILS'}  "
+              f"(LHS {down(lhs, 6)}, RHS {up(rhs, 6)}"
+              f"{', identical to printed' if same else ''})")
+    ok &= domination(prow, peels, hopt, "with the A_q printed in Table 2")
 
     print(f"\nOptimiser sanity check (1-D searches): a 20001-point grid improves on the rounded "
           f"DE optimum by at most {max(GAPS):.1e} (below half a unit in the sixth decimal: "
