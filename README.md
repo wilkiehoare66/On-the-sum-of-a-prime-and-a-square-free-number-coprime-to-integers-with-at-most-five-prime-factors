@@ -136,20 +136,28 @@ The method is the one described in the remark after Table 2:
   double precision and rounded to six decimal places: `A` for each `k` in
   Table 1; `(A, A_q)` jointly for each row of Table 2; `A_q` for each prime
   `11 <= q <= 37` in the domination check.
-* Every bound is then recomputed at the rounded parameters with `mpmath` at
-  120 significant digits. Lower bounds are rounded down and upper bounds up,
-  at the last printed digit.
+* Every bound is then recomputed at the rounded parameters with `mpmath` to
+  at least 120 decimal places (`mp.dps = 135`; no quantity used exceeds
+  `n0 = 2e12`). Lower bounds are rounded down and upper bounds up, at the last
+  printed digit.
 * Parameters: `n0 = 2e12`; `c = floor(sqrt(1e5/m))` and `Z = 1e5` for the
   base `m`; `c_1 = floor(sqrt(1e5/q))`, `c_2 = floor(10^{5/2}/q)` and
   `Z_1 = Z_2 = min(floor(n0^{A_q}/q), 1e5)` for each peeled prime `q`.
 
-The script also checks the hypotheses of Propositions 2.5 and 2.7 at the
-chosen parameters (including `k Z^2 < n0`, `c sqrt(k) <= n0^A` and
-`q Z_i <= n0^{A_q}`), that `x_theta(m) <= n0` for every modulus used, and that
-`c_q(n0)` is non-increasing over all odd primes. It ends with
+It then checks the values printed in the paper directly: Table 1 and the
+`alpha_k` of Theorem 2.3 at the printed `A`, Table 2 at the printed `A` and
+`A_q`, and the domination step with the `A_q` printed in Table 2. At the
+printed parameters the recomputed LHS and RHS of Table 2 are identical to the
+printed ones in every row, and every printed entry of Table 1 is a valid bound.
+
+Along the way it checks the conditions used at the chosen parameters
+(`k Z^2 < n0`, `q^i c_i^2 <= 1e5`, `Z_i > c_i`, `q Z_i <= n0^{A_q}`, and
+`c sqrt(k) <= n0^A` for the split into ranges in Section 4), that
+`x_theta(m) <= n0` for every modulus used, and that `c_q(n0)` is
+non-increasing over all odd primes. It ends with
 
 ```
-  every prime q > q* contributes at most h(q*): OK (tightest: row m=3, k=289731, q* = 23 against q = 41, margin 0.000924083)
+  every prime q > q* contributes at most h(q*), with the A_q printed in Table 2: OK (tightest: row m=3, k=289731, q* = 23 against q = 41, margin 0.000924089)
 ...
 ALL CHECKS PASSED
 ```
@@ -158,11 +166,12 @@ and exits with status 0 (1 if any check fails).
 
 **Seeds.** The default seed is 0 (`--seed N` to change it). Because `E_2`
 depends on `A_q` partly through `floor(n0^{A_q}/q)`, its minimum is a small
-flat region rather than a point, so the printed `A_q` can move in the sixth
-decimal with the seed or the `scipy` version. The bounds do not: the LHS and
-RHS columns of Table 2, all of Table 1, and every check are the same across
-seeds. The script prints the Python, `scipy` and `mpmath` versions it ran
-with; the tables in the paper were produced with seed 0.
+flat region rather than a point, so the `A_q` found by `differential_evolution`
+can differ in the sixth decimal between runs, seeds and `scipy` versions,
+including from those printed in the paper. The bounds do not: the LHS and RHS
+columns of Table 2, the entries of Table 1, and every check come out the same,
+and the printed parameters themselves are checked as described above. The
+script prints the Python, `scipy` and `mpmath` versions it ran with.
 
 ## The C++ run
 
