@@ -253,7 +253,9 @@ record are exactly those of the commit they name (16b67d1); only the results of
 the run, committed immediately afterwards (476c5ee), were new. The C++ sources have since changed in comments only, line for line:
 rebuilding either verifier from this repository with g++ 13.3.0 and
 `-O3 -fopenmp -std=c++17` reproduces the executable checksums recorded in that
-snapshot bit for bit.
+snapshot bit for bit. The snapshot of 24 November 2026 records such a rebuild,
+made on a separate machine from a clean checkout of the current sources, with
+identical executable and result checksums.
 
 In the run of record the fast path cleared every odd `n`, so no odd `n` reached
 the fallback search; on the even side, 1,027,844 values reached the final tier,
