@@ -15,7 +15,7 @@
 # Usage:
 #   ./run_manifest.sh                       # writes/*appends* results/run_manifest.txt
 #   ./run_manifest.sh --out FILE            # custom path
-#   BUILD_FLAGS="-O2 -std=c++17 -fopenmp" ./run_manifest.sh   # record the flags you used
+#   BUILD_FLAGS="-O3 -fopenmp -std=c++17" ./run_manifest.sh   # record the flags you used
 #
 # It records the flags from $BUILD_FLAGS if set (so pass the same string you
 # built with); otherwise it notes them as UNRECORDED and you should fill them in.
@@ -29,6 +29,17 @@ mkdir -p "$(dirname "$OUT")"
 SUM=sha256sum
 command -v sha256sum >/dev/null 2>&1 || SUM="shasum -a 256"   # macOS fallback
 
+# Read the git state BEFORE anything is appended to $OUT: the manifest is itself
+# tracked, so testing afterwards would always report a dirty tree.
+GIT_OK=0
+if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
+  GIT_OK=1
+  G_COMMIT="$(git rev-parse HEAD)"
+  G_DESCRIBE="$(git describe --tags --always --dirty 2>/dev/null || echo '(no tag)')"
+  G_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  if git diff --quiet 2>/dev/null; then G_CLEAN=1; else G_CLEAN=0; fi
+fi
+
 {
   echo "================================================================"
   echo "RUN MANIFEST  ($(date -u '+%Y-%m-%dT%H:%M:%SZ') UTC)"
@@ -36,11 +47,11 @@ command -v sha256sum >/dev/null 2>&1 || SUM="shasum -a 256"   # macOS fallback
 
   echo
   echo "-- [1] Source revision --"
-  if command -v git >/dev/null 2>&1 && git rev-parse --git-dir >/dev/null 2>&1; then
-    echo "commit:      $(git rev-parse HEAD)"
-    echo "tag/describe: $(git describe --tags --always --dirty 2>/dev/null || echo '(no tag)')"
-    echo "branch:      $(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
-    if ! git diff --quiet 2>/dev/null; then
+  if [[ $GIT_OK -eq 1 ]]; then
+    echo "commit:      $G_COMMIT"
+    echo "tag/describe: $G_DESCRIBE"
+    echo "branch:      $G_BRANCH"
+    if [[ $G_CLEAN -eq 0 ]]; then
       echo "WORKING TREE: DIRTY  <-- commit/stash before an archival run"
     else
       echo "working tree: clean"
