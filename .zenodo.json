@@ -1,0 +1,10 @@
+{
+  "title": "Reproducibility code and data for \"On the sum of a prime and a square-free number coprime to integers with at most five prime factors\"",
+  "upload_type": "software",
+  "description": "Code and data for the computations in the paper \"On the sum of a prime and a square-free number coprime to integers with at most five prime factors\" by W. Hoare, E. S. Lee and A. Pearce-Crump: the exact criterion for 108 &le; n &le; 10<sup>4</sup> (Threshold.py), the C++ verifiers and their results for 10<sup>4</sup> &lt; n &le; 2&middot;10<sup>12</sup>, and the explicit constants of Tables 1 and 2 (streamlined_tables.py).",
+  "creators": [
+    {"name": "Hoare, Wilkie"}
+  ],
+  "license": "cc-by-4.0",
+  "keywords": ["Goldbach", "square-free numbers", "prime number theorem for arithmetic progressions", "explicit number theory"]
+}
