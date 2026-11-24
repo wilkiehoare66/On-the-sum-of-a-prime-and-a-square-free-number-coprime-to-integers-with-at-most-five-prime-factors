@@ -17,7 +17,7 @@ the paper covers `n > 2e12`. The prime is required to exceed 2 because Lemma
 The range splits at `1e4`:
 
 * `108 <= n <= 1e4`: `Threshold.py` decides the question exactly, by a
-  hitting-set criterion (Section 6, *The sharp threshold*).
+  hitting-set criterion (Section 6, Case 3).
 * `1e4 < n <= 2e12`: two C++ verifiers exhibit witnesses. `verify_odd` finds,
   for each odd `n`, six square-free `s` with `n - s` prime and pairwise coprime
   odd parts; `verify_even` finds, for each even `n`, three distinct Goldbach
@@ -26,9 +26,21 @@ The range splits at `1e4`:
 `Threshold.py` also computes the sharp thresholds quoted in the remark after
 Theorem 1.1: 36, 60, 84 and 108 for `omega(k) <= 2, 3, 4, 5`.
 
+The analytic part (`n >= 2e12`) rests on two tables of explicit constants and
+one finite check, all produced by `streamlined_tables.py` from the Bennett,
+Martin, O'Bryant and Rechnitzer table of `c_theta(q)`:
+
+* Table 1: the lower bounds `R_k(n) > alpha_k n` of Theorem 2.3;
+* Table 2: the eleven configurations left over in Corollary 3.6;
+* the domination step at the end of the proof of Corollary 3.6, which extends
+  each row of Table 2 to every `k` with the same `m` and the same least prime
+  factor of `k/m`.
+
 ## Requirements
 
-* Python 3.8+ (standard library only)
+* Python 3.8+. `Threshold.py` and `verify_results.py` use the standard
+  library only; `streamlined_tables.py` also needs `scipy` and `mpmath`
+  (`pip install scipy mpmath`).
 * A C++17 compiler with OpenMP (`g++ -fopenmp`)
 
 ## Layout
@@ -36,6 +48,9 @@ Theorem 1.1: 36, 60, 84 and 108 for `omega(k) <= 2, 3, 4, 5`.
 ```
 .
 ├── Threshold.py              exact criterion: 108 <= n <= 1e4, and the thresholds
+├── streamlined_tables.py     Tables 1 and 2, and the domination check (n >= 2e12)
+├── bennett_c_theta.tsv       c_theta(q), 3 <= q <= 1e5 (Bennett et al.)
+├── bennett_x0.tsv            x_theta(q), 3 <= q <= 1e5 (Bennett et al.)
 ├── README.md
 └── verification/
     ├── verify_odd.cpp         odd n: six square-free witnesses, pairwise coprime odd parts
@@ -61,6 +76,9 @@ Theorem 1.1: 36, 60, 84 and 108 for `omega(k) <= 2, 3, 4, 5`.
 | Lemma 3.2, odd `n` in `(1e4, 2e12]` | `verify_odd.cpp` | see *The C++ run* |
 | Lemma 3.2, even `n` in `(1e4, 2e12]` | `verify_even.cpp` | see *The C++ run* |
 | Section 6, *Reproducibility* | `verify_results.py` | `--sample 200` |
+| Table 1 / Theorem 2.3 | `streamlined_tables.py` | `bennett_c_theta.tsv` |
+| Table 2 / Corollary 3.6 | `streamlined_tables.py` | `bennett_c_theta.tsv` |
+| Domination step, proof of Corollary 3.6 | `streamlined_tables.py` | `bennett_c_theta.tsv` |
 
 ## The range 108 <= n <= 1e4
 
@@ -105,6 +123,46 @@ integer 33 attaining it, which is the external check on the script.
 The C++ device takes over above `1e4` because it is sufficient but not
 necessary, and below `1e4` the gap shows: at `n = 167` no six pairwise coprime
 witnesses exist, yet `n = 167` is good for every `omega(k) <= 5`.
+
+## The analytic tables
+
+```
+python3 streamlined_tables.py bennett_c_theta.tsv           # about 75 seconds
+```
+
+The method is the one described in the remark after Table 2:
+
+* Parameters are chosen with `scipy.optimize.differential_evolution` in
+  double precision and rounded to six decimal places: `A` for each `k` in
+  Table 1; `(A, A_q)` jointly for each row of Table 2; `A_q` for each prime
+  `11 <= q <= 37` in the domination check.
+* Every bound is then recomputed at the rounded parameters with `mpmath` at
+  120 significant digits. Lower bounds are rounded down and upper bounds up,
+  at the last printed digit.
+* Parameters: `n0 = 2e12`; `c = floor(sqrt(1e5/m))` and `Z = 1e5` for the
+  base `m`; `c_1 = floor(sqrt(1e5/q))`, `c_2 = floor(10^{5/2}/q)` and
+  `Z_1 = Z_2 = min(floor(n0^{A_q}/q), 1e5)` for each peeled prime `q`.
+
+The script also checks the hypotheses of Propositions 2.5 and 2.7 at the
+chosen parameters (including `k Z^2 < n0`, `c sqrt(k) <= n0^A` and
+`q Z_i <= n0^{A_q}`), that `x_theta(m) <= n0` for every modulus used, and that
+`c_q(n0)` is non-increasing over all odd primes. It ends with
+
+```
+  every prime q > q* contributes at most h(q*): OK (tightest: row m=3, k=289731, q* = 23 against q = 41, margin 0.000924083)
+...
+ALL CHECKS PASSED
+```
+
+and exits with status 0 (1 if any check fails).
+
+**Seeds.** The default seed is 0 (`--seed N` to change it). Because `E_2`
+depends on `A_q` partly through `floor(n0^{A_q}/q)`, its minimum is a small
+flat region rather than a point, so the printed `A_q` can move in the sixth
+decimal with the seed or the `scipy` version. The bounds do not: the LHS and
+RHS columns of Table 2, all of Table 1, and every check are the same across
+seeds. The script prints the Python, `scipy` and `mpmath` versions it ran
+with; the tables in the paper were produced with seed 0.
 
 ## The C++ run
 
