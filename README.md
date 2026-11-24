@@ -242,16 +242,18 @@ The default (Miller-Rabin) builds of `verify_odd` and `verify_even`, together
 with `Threshold.py --certify` for `108 <= n <= 1e4`.
 
 **Provenance.** `results/run_manifest.txt` is append-only and keeps every
-snapshot. The results of record are those in the last one (12 October 2026,
-18:57 UTC). The earlier snapshots predate the re-run of `verify_odd` (with
+snapshot. The results of record come from the run recorded in the snapshot of
+12 October 2026, 18:57 UTC; later snapshots record the same result checksums.
+The earlier snapshots predate the re-run of `verify_odd` (with
 `p > 2` in its fallback), and the first (5 August 2026) lists files from an
-earlier layout of the repository. The October snapshots were taken before the
-sources were committed,
-hence `WORKING TREE: DIRTY`; the committed sources match their checksums. The
-C++ sources have since changed in comments only, line for line: rebuilding
-either verifier from this repository with g++ 13.3.0 and
-`-O3 -fopenmp -std=c++17` reproduces the executable checksums recorded in
-that snapshot bit for bit.
+earlier layout of the repository. Every snapshot from October onwards reports
+`WORKING TREE: DIRTY` because, until this version, `run_manifest.sh` appended
+to the tracked manifest before testing the tree. The sources those snapshots
+record are exactly those of the commit they name (16b67d1); only the results of
+the run, committed immediately afterwards (476c5ee), were new. The C++ sources have since changed in comments only, line for line:
+rebuilding either verifier from this repository with g++ 13.3.0 and
+`-O3 -fopenmp -std=c++17` reproduces the executable checksums recorded in that
+snapshot bit for bit.
 
 In the run of record the fast path cleared every odd `n`, so no odd `n` reached
 the fallback search; on the even side, 1,027,844 values reached the final tier,
