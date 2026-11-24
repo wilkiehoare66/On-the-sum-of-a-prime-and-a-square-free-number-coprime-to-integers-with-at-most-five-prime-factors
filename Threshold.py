@@ -6,24 +6,23 @@ Computes the SHARP threshold n_0(r): the least N such that every n >= N (of the
 appropriate parity) is a sum of a prime and a square-free number coprime to k,
 for every k > 1 with omega(k) <= r.
 
-WHY NOT THE GREEDY SEARCH.  The reference script of Lee and O'Clarey
-(Lemma4_2.py) certifies n by exhibiting r+1 PAIRWISE COPRIME square-free
-witnesses.  That is sufficient but not necessary: an n at which the greedy
-search fails may still admit a representation for every admissible k, since a
-representation need only avoid the primes of the single k in hand.  A threshold
-printed in a theorem statement should be the exact one, so this script decides
-the question directly.
+WHY AN EXACT CRITERION.  Exhibiting r+1 PAIRWISE COPRIME square-free
+witnesses, the device used above 1e4 (following Lee and O'Clarey), certifies n
+for every k with omega(k) <= r.  It is sufficient but not necessary: an n
+without such witnesses may still admit a representation for every admissible k,
+since a representation need only avoid the primes of the single k in hand.  To
+obtain the exact threshold, this script decides the question directly.
 
 THE EXACT CRITERION.  Put
     W(n) = { n - p : p < n prime, mu^2(n-p) = 1 },
-and for w in W(n) let supp(w) be the set of ODD primes dividing w.  A fixed
+and for w in W(n) let supp(w) be the set of ODD primes dividing w.  A fixed odd
 integer k defeats n precisely when every w in W(n) shares a prime factor with k, i.e. when
 the odd prime factors of k form a HITTING SET for the family { supp(w) }.  Hence
 
     n is good for every odd k with omega(k) <= r    <=>    tau(n) > r,
 
 tau(n) being the least size of a hitting set for that family.  If some w has
-supp(w) empty (that is, n-1 or n-2 is prime) then no k defeats n.
+supp(w) empty (that is, n-1 or n-2 is prime) then no odd k defeats n.
 
 For EVEN k = 2m the square-free summand must also be odd, so the relevant family
 is W_odd(n) = { w in W(n) : w odd } and, omega(k) <= r allowing omega(m) <= r-1,
@@ -38,9 +37,9 @@ threshold mode keeps p = 2, since Theorem 1.1 itself allows it.
 
 EARLY EXIT.  Hitting-set size is monotone under adding constraints: if some
 SUBFAMILY already needs more than r primes, so does the whole family.  Witnesses
-are therefore generated in increasing order of w -- smallest first, hence fewest
-prime factors, hence most constraining -- and the search stops as soon as the
-partial family forces tau > r.  Only genuinely failing n are examined in full.
+are therefore generated in increasing order of w -- small w tend to have few
+prime factors, so constrain most -- and the search stops as soon as the partial
+family forces tau > 8 >= r (so --rmax may not exceed 8).  Only genuinely failing n are examined in full.
 
 Usage:
     python3 Threshold.py --rmin 2 --rmax 5 --nmax 3000    # the thresholds
@@ -163,6 +162,8 @@ def main():
                     help="check Lemma 3.2 (odd k, primes 2 < p < n) for every "
                          "n in [LO,HI] and omega(k) <= rmax")
     args = ap.parse_args()
+    if args.rmax > 8:
+        ap.error("--rmax may not exceed 8: the early exit in family() tests tau > 8")
 
     if args.certify:
         lo, hi, r = args.certify[0], args.certify[1], args.rmax
