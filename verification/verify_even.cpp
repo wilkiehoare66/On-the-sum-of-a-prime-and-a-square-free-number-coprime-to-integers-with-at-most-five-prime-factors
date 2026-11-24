@@ -36,11 +36,11 @@
 //                        Sorenson-Webster bases, valid unconditionally for
 //                        every n < 318665857834031151167461 (~3.19e23),
 //                        eleven orders of magnitude beyond this range.
-//     g++ -O2 -std=c++17 -fopenmp verify_even.cpp -o verify_even
+//     g++ -O3 -fopenmp -std=c++17 -o verify_even verify_even.cpp
 //
 //   -DUSE_BPSW       -- Baillie-PSW with Montgomery multiplication from
 //                        prime64.hpp (faster, conjectural). Needs C++20.
-//     g++ -O2 -std=c++20 -fopenmp -DUSE_BPSW verify_even.cpp -o verify_even_bpsw
+//     g++ -O3 -fopenmp -std=c++20 -DUSE_BPSW -o verify_even_bpsw verify_even.cpp
 //
 //   Sanitized self-test build (run before any exhaustive run):
 //     g++ -O0 -g -std=c++17 -fopenmp -fsanitize=address,undefined
@@ -203,11 +203,11 @@ void generate_primes() {
 // ============================================================================
 // Exhaustive NUM_SPLITS-split check
 //
-// Returns up to NUM_SPLITS distinct primes q with n - q also prime (the split
-// witnesses q and its partner n-q); a result of that size certifies n. Used
-// only as the final tier, so its per-call cost is irrelevant to overall
-// throughput. Uses the deterministic primality routine directly, so it does
-// not depend on any pre-sieved prime set.
+// Returns up to NUM_SPLITS primes q <= n/2 with n - q also prime. The loop
+// would admit q = n/2, a split with one distinct prime; in the run of record
+// every n reaching this tier was cleared by three primes q < 3000, far below
+// n/2 > 5000 (verify_results.py re-checks results/even_deep_checks.csv). Uses
+// the deterministic primality routine directly, not a pre-sieved prime set.
 // ============================================================================
 
 vector<i64> distinct_splits(i64 n) {
