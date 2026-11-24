@@ -205,7 +205,7 @@ python3 verify_results.py --sample 200
   even run.
 * **The fallback count.** Each row of `odd_results.csv` ends with
   `fallback_count`: how many odd `n` in that chunk the fast path did not clear,
-  so the exhaustive search had to. `verify_results.py` reports the total.
+  so the fallback search had to. `verify_results.py` reports the total.
 * **Counts in one place.** The witness and split counts appear once each,
   `NUM_WITNESSES` in `verify_odd.cpp` and `NUM_SPLITS` in `verify_even.cpp`;
   `verify_results.py` carries copies that must be kept in step with them.
@@ -240,3 +240,20 @@ the latest release, so it stays correct as the repository is updated.
 
 The default (Miller-Rabin) builds of `verify_odd` and `verify_even`, together
 with `Threshold.py --certify` for `108 <= n <= 1e4`.
+
+**Provenance.** `results/run_manifest.txt` is append-only and keeps every
+snapshot. The results of record are those in the last one (12 October 2026,
+18:57 UTC). The earlier snapshots predate the re-run of `verify_odd` (with
+`p > 2` in its fallback), and the first (5 August 2026) lists files from an
+earlier layout of the repository. The October snapshots were taken before the
+sources were committed,
+hence `WORKING TREE: DIRTY`; the committed sources match their checksums. The
+C++ sources have since changed in comments only, line for line: rebuilding
+either verifier from this repository with g++ 13.3.0 and
+`-O3 -fopenmp -std=c++17` reproduces the executable checksums recorded in
+that snapshot bit for bit.
+
+In the run of record the fast path cleared every odd `n`, so no odd `n` reached
+the fallback search; on the even side, 1,027,844 values reached the final tier,
+each cleared by three distinct primes `q < 3000` (`verify_results.py` re-checks
+both).
