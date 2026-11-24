@@ -21,12 +21,12 @@
 //   (extended below the batch start by the largest pool witness), so each
 //   query is a single array read.
 //
-//   Fallback.  For any odd n the fast path does not clear, an exhaustive
-//   search over primes 2 < pr < n forms ell = n - pr, tests square-freeness
-//   completely (trial division to B > NMAX^(1/3) followed by a residual
-//   perfect-square check), encodes the odd support canonically, and greedily
-//   collects NUM_WITNESSES pairwise-disjoint witnesses. This tier uses the
-//   deterministic primality routine directly.
+//   Fallback.  For any odd n the fast path does not clear, a search over the
+//   pre-sieved primes 2 < pr < min(n, 10^7) forms ell = n - pr, tests square-
+//   freeness completely (trial division to B > NMAX^(1/3) followed by a
+//   residual perfect-square check), encodes the odd support canonically, and
+//   greedily collects NUM_WITNESSES pairwise-disjoint witnesses. An n it does
+//   not clear is recorded as an exception; the run of record has none.
 //
 // Primality backend, selected at compile time:
 //
@@ -34,11 +34,11 @@
 //                        Sorenson-Webster bases, valid unconditionally for
 //                        every n < 318665857834031151167461 (~3.19e23),
 //                        eleven orders of magnitude beyond this range.
-//     g++ -O2 -std=c++17 -fopenmp verify_odd.cpp -o verify_odd
+//     g++ -O3 -fopenmp -std=c++17 -o verify_odd verify_odd.cpp
 //
 //   -DUSE_BPSW       -- Baillie-PSW with Montgomery multiplication from
 //                        prime64.hpp (faster, conjectural). Needs C++20.
-//     g++ -O2 -std=c++20 -fopenmp -DUSE_BPSW verify_odd.cpp -o verify_odd_bpsw
+//     g++ -O3 -fopenmp -std=c++20 -DUSE_BPSW -o verify_odd_bpsw verify_odd.cpp
 //
 //   Sanitized self-test build (run before any exhaustive run):
 //     g++ -O0 -g -std=c++17 -fopenmp -fsanitize=address,undefined
@@ -264,7 +264,7 @@ bool disjoint_supports(const OddSupport& a, const OddSupport& b) {
 }
 
 // ============================================================================
-// Fallback: exhaustive NUM_WITNESSES-witness search
+// Fallback: NUM_WITNESSES-witness search over the primes below 10^7
 // ============================================================================
 
 vector<i64> FALLBACK_PRIMES;   // primes up to 10^7
